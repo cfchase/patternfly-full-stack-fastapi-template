@@ -110,13 +110,44 @@ make build && make push                     # For development (uses latest tag)
 make build-prod && make push-prod           # For production
 
 # Then deploy
-make deploy           # Deploy to development
+make deploy           # Deploy to development (includes PostgreSQL)
 make deploy-prod      # Deploy to production
 make undeploy         # Remove development deployment
 make undeploy-prod    # Remove production deployment
 make kustomize        # Preview dev manifests
 make kustomize-prod   # Preview prod manifests
 ```
+
+**Database Setup in Cluster:**
+After deploying, you need to initialize the database schema:
+
+1. **Run database migrations** (one-time or after schema changes):
+   ```bash
+   kubectl apply -f k8s/base/db-migration-job.yaml
+   # Or uncomment db-migration-job.yaml in k8s/base/kustomization.yaml and redeploy
+   ```
+
+2. **Check migration job status**:
+   ```bash
+   kubectl get jobs
+   kubectl logs job/db-migration
+   ```
+
+3. **Update database credentials** (for production):
+   ```bash
+   # Edit k8s/base/postgres-secret.yaml or use kubectl
+   kubectl create secret generic postgres-secret \
+     --from-literal=username=youruser \
+     --from-literal=password=yourpassword \
+     --from-literal=database=yourdb \
+     --dry-run=client -o yaml | kubectl apply -f -
+   ```
+
+**Deployed Resources:**
+- Frontend deployment and service
+- Backend deployment and service
+- PostgreSQL deployment, service, PVC, and secret
+- OpenShift route for external access
 
 ## Architecture
 

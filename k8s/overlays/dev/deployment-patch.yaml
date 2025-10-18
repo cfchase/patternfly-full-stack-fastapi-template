@@ -9,7 +9,7 @@ spec:
       - name: backend
         env:
         - name: ENVIRONMENT
-          value: "development"
+          value: "staging"
         resources:
           requests:
             memory: "64Mi"
