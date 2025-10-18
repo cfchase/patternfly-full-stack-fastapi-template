@@ -15,7 +15,13 @@ def test_read_root():
 
 
 def test_health_check():
-    """Test the health check endpoint."""
+    """Test the health check endpoint with database connectivity."""
     response = client.get("/api/v1/utils/health-check")
     assert response.status_code == 200
-    assert response.json() == {"status": "healthy", "message": "Backend is running"}
+
+    data = response.json()
+    assert data["status"] == "healthy"
+    assert data["message"] == "Backend is running"
+    assert "database" in data
+    assert data["database"]["status"] == "healthy"
+    assert "message" in data["database"]
