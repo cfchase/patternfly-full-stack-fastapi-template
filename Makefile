@@ -6,7 +6,7 @@ TAG ?= latest
 CONTAINER_TOOL ?= docker
 
 
-.PHONY: help setup dev build build-prod test clean push push-prod deploy deploy-prod undeploy undeploy-prod kustomize kustomize-prod
+.PHONY: help setup dev build build-prod test clean push push-prod deploy deploy-prod undeploy undeploy-prod kustomize kustomize-prod db-start db-stop db-reset db-shell db-logs db-status
 
 # Default target
 help: ## Show this help message
@@ -38,6 +38,26 @@ dev-frontend: ## Run frontend development server
 
 dev-backend: ## Run backend development server
 	cd backend && uv run uvicorn main:app --reload --host 0.0.0.0 --port 8000
+
+# Database Management
+db-start: ## Start PostgreSQL development database
+	@chmod +x scripts/dev-db.sh
+	@./scripts/dev-db.sh start
+
+db-stop: ## Stop PostgreSQL development database
+	@./scripts/dev-db.sh stop
+
+db-reset: ## Reset PostgreSQL database (removes all data)
+	@./scripts/dev-db.sh reset
+
+db-shell: ## Open PostgreSQL shell
+	@./scripts/dev-db.sh shell
+
+db-logs: ## Show PostgreSQL logs
+	@./scripts/dev-db.sh logs
+
+db-status: ## Check PostgreSQL database status
+	@./scripts/dev-db.sh status
 
 # Building
 build-frontend: ## Build frontend for production
