@@ -64,7 +64,7 @@ class ItemBase(SQLModel):
 
 # Properties to receive on item creation
 class ItemCreate(ItemBase):
-    pass
+    pass 
 
 
 # Properties to receive on item update

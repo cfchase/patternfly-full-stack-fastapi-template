@@ -103,6 +103,16 @@ test-backend-coverage: ## Run backend tests with coverage
 test-backend-watch: ## Run backend tests in watch mode
 	cd backend && uv run pytest --watch
 
+test-e2e: ## Run end-to-end tests with Playwright
+	@echo "Running E2E tests..."
+	cd frontend && npm run test:e2e
+
+test-e2e-ui: ## Run E2E tests with Playwright UI
+	cd frontend && npm run test:e2e:ui
+
+test-e2e-headed: ## Run E2E tests in headed mode (visible browser)
+	cd frontend && npm run test:e2e:headed
+
 lint: ## Run linting on frontend
 	cd frontend && npm run lint
 

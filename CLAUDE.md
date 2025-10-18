@@ -43,6 +43,8 @@ make help             # Show all available commands
 make db-start         # Start PostgreSQL development container
 make db-stop          # Stop PostgreSQL container
 make db-status        # Check if PostgreSQL is running
+make db-init          # Run Alembic migrations to create database schema
+make db-seed          # Populate database with test data (3 users, 8 items)
 make db-shell         # Open PostgreSQL shell (psql)
 make db-logs          # Show PostgreSQL logs
 make db-reset         # Remove container and delete all data (destructive)
@@ -55,6 +57,7 @@ make db-reset         # Remove container and delete all data (destructive)
 - Default database: `app`
 - Port: `5432`
 - PostgreSQL version: 15-alpine
+- ORM: SQLModel with Alembic migrations
 
 ### Building
 ```bash
@@ -69,7 +72,18 @@ make test-backend            # Run pytest tests
 make test-backend-verbose    # Run pytest with verbose output
 make test-backend-coverage   # Run pytest with coverage report
 make test-backend-watch      # Run pytest in watch mode
+make test-e2e                # Run Playwright E2E tests (requires backend + db running)
+make test-e2e-ui             # Run E2E tests with Playwright UI (interactive)
+make test-e2e-headed         # Run E2E tests in headed mode (visible browser)
 make lint                    # Run ESLint on frontend
+```
+
+**E2E Test Prerequisites:**
+Before running E2E tests, ensure these services are running:
+```bash
+make db-start && make db-init && make db-seed  # Start database with test data
+make dev-backend                                # Start backend API server
+# Frontend is started automatically by Playwright
 ```
 
 ### Container Registry (Quay.io)
