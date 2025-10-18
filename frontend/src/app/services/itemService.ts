@@ -26,7 +26,7 @@ const API_BASE = '/api/v1/items';
 
 export const itemService = {
   async getItems(): Promise<ItemsResponse> {
-    const response = await axios.get<ItemsResponse>(API_BASE);
+    const response = await axios.get<ItemsResponse>(`${API_BASE}/`);
     return response.data;
   },
 
@@ -36,7 +36,7 @@ export const itemService = {
   },
 
   async createItem(item: ItemCreate): Promise<Item> {
-    const response = await axios.post<Item>(API_BASE, item);
+    const response = await axios.post<Item>(`${API_BASE}/`, item);
     return response.data;
   },
 

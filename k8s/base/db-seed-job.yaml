@@ -1,26 +1,26 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: db-migration
+  name: db-seed
   labels:
     app: backend
-    component: migration
+    component: seed
 spec:
   template:
     metadata:
       labels:
         app: backend
-        component: migration
+        component: seed
     spec:
       restartPolicy: OnFailure
       containers:
-      - name: alembic
+      - name: seed
         image: quay.io/cfchase/patternfly-fastapi-backend:latest
         command:
         - /bin/sh
         - -c
         - |
-          alembic upgrade head
+          python scripts/seed_test_data.py
         env:
         - name: POSTGRES_SERVER
           value: "postgres"

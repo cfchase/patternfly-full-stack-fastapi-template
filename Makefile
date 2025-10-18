@@ -6,7 +6,7 @@ TAG ?= latest
 CONTAINER_TOOL ?= docker
 
 
-.PHONY: help setup dev build build-prod test clean push push-prod deploy deploy-prod undeploy undeploy-prod kustomize kustomize-prod db-start db-stop db-reset db-shell db-logs db-status db-init db-seed
+.PHONY: help setup dev build build-prod test clean push push-prod deploy deploy-prod undeploy undeploy-prod kustomize kustomize-prod db-start db-stop db-reset db-shell db-logs db-status db-init db-seed db-migrate-cluster db-seed-cluster db-init-cluster
 
 # Default target
 help: ## Show this help message
@@ -146,6 +146,30 @@ undeploy: ## Remove development deployment
 undeploy-prod: ## Remove production deployment
 	@echo "Removing production deployment..."
 	./scripts/undeploy.sh prod
+
+db-migrate-cluster: ## Run database migrations in the cluster
+	@echo "Running database migrations in cluster..."
+	@command -v oc >/dev/null 2>&1 && oc apply -f k8s/base/db-migration-job.yaml || kubectl apply -f k8s/base/db-migration-job.yaml
+	@echo "Waiting for migration job to complete..."
+	@command -v oc >/dev/null 2>&1 && oc wait --for=condition=complete --timeout=120s job/db-migration || kubectl wait --for=condition=complete --timeout=120s job/db-migration || true
+	@echo "Migration job logs:"
+	@command -v oc >/dev/null 2>&1 && oc logs job/db-migration || kubectl logs job/db-migration
+	@echo "To re-run migrations, first delete the job: oc delete job db-migration"
+
+db-seed-cluster: ## Seed database with test data in the cluster
+	@echo "Seeding database with test data in cluster..."
+	@command -v oc >/dev/null 2>&1 && oc apply -f k8s/base/db-seed-job.yaml || kubectl apply -f k8s/base/db-seed-job.yaml
+	@echo "Waiting for seed job to complete..."
+	@command -v oc >/dev/null 2>&1 && oc wait --for=condition=complete --timeout=120s job/db-seed || kubectl wait --for=condition=complete --timeout=120s job/db-seed || true
+	@echo "Seed job logs:"
+	@command -v oc >/dev/null 2>&1 && oc logs job/db-seed || kubectl logs job/db-seed
+	@echo "To re-run seeding, first delete the job: oc delete job db-seed"
+
+db-init-cluster: ## Run migrations and seed data in the cluster
+	@echo "Initializing database (migrations + seed data)..."
+	@$(MAKE) db-migrate-cluster
+	@echo ""
+	@$(MAKE) db-seed-cluster
 
 # Environment Setup
 env-setup: ## Copy environment example files

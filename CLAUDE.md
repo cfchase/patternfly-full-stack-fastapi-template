@@ -110,30 +110,33 @@ make build && make push                     # For development (uses latest tag)
 make build-prod && make push-prod           # For production
 
 # Then deploy
-make deploy           # Deploy to development (includes PostgreSQL)
-make deploy-prod      # Deploy to production
-make undeploy         # Remove development deployment
-make undeploy-prod    # Remove production deployment
-make kustomize        # Preview dev manifests
-make kustomize-prod   # Preview prod manifests
+make deploy               # Deploy to development (includes PostgreSQL)
+make db-init-cluster      # Run migrations + seed test data in cluster
+make deploy-prod          # Deploy to production
+make undeploy             # Remove development deployment
+make undeploy-prod        # Remove production deployment
+make kustomize            # Preview dev manifests
+make kustomize-prod       # Preview prod manifests
 ```
 
 **Database Setup in Cluster:**
-After deploying, you need to initialize the database schema:
+After deploying, initialize the database:
 
-1. **Run database migrations** (one-time or after schema changes):
-   ```bash
-   kubectl apply -f k8s/base/db-migration-job.yaml
-   # Or uncomment db-migration-job.yaml in k8s/base/kustomization.yaml and redeploy
-   ```
+```bash
+# Option 1: Run migrations + seed test data (recommended for dev)
+make db-init-cluster
 
-2. **Check migration job status**:
-   ```bash
-   kubectl get jobs
-   kubectl logs job/db-migration
-   ```
+# Option 2: Run just migrations (for production)
+make db-migrate-cluster
 
-3. **Update database credentials** (for production):
+# Option 3: Run just seed data (after migrations)
+make db-seed-cluster
+
+# To re-run, delete the jobs first:
+oc delete job db-migration db-seed
+```
+
+**Update database credentials** (for production):
    ```bash
    # Edit k8s/base/postgres-secret.yaml or use kubectl
    kubectl create secret generic postgres-secret \
@@ -275,3 +278,7 @@ When creating git commits:
 - Follow conventional commit format when appropriate
 - Do NOT include any AI assistant attribution or co-authorship
 - Keep commit messages focused on the actual changes made
+- **Summarize changes** rather than listing files line-by-line
+  - Good: "Add PostgreSQL deployment with persistent storage and migrations"
+  - Avoid: "Add postgres-deployment.yaml, Add postgres-service.yaml, Add postgres-pvc.yaml..."
+- Keep commit messages concise (10 lines or less for the body)
