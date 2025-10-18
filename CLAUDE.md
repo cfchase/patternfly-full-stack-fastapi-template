@@ -209,8 +209,18 @@ oc delete job db-migration db-seed
 ## API Endpoints
 
 The FastAPI backend provides:
-- `GET /` - Root endpoint (main.py:25-27)
-- `GET /api/v1/utils/health-check` - Health check endpoint (app/api/routes/v1/utils/health.py)
+- `GET /` - Root endpoint (main.py:26-28)
+- `GET /api/v1/utils/health-check` - Health check endpoint with database connectivity (app/api/routes/v1/utils/health.py)
+
+### Items API (Simplified - No Authentication)
+Currently implemented without authentication for testing purposes:
+- `GET /api/v1/items/` - List all items with pagination (app/api/routes/v1/items.py)
+- `GET /api/v1/items/{id}` - Get item by ID
+- `POST /api/v1/items/` - Create new item (uses hardcoded owner_id for testing)
+- `PUT /api/v1/items/{id}` - Update item
+- `DELETE /api/v1/items/{id}` - Delete item
+
+Note: Authentication will be added in Phase 3. Current implementation uses hardcoded owner_id for testing.
 
 ## Development Workflow
 
@@ -270,6 +280,154 @@ The FastAPI backend provides:
 - Update registry in Makefile (default: `quay.io/cfchase`)
 - Update page titles in `frontend/src/app/routeConfig.tsx` (currently "PatternFly Seed")
 - The template provides a foundation with example pages - customize or replace as needed
+
+## Source Template Alignment
+
+This project is based on the [FastAPI Full Stack Template](https://github.com/fastapi/full-stack-fastapi-template) and aims to mirror its architecture and patterns closely, with modifications for PatternFly UI integration.
+
+### Template Reference
+
+**Source Repository**: https://github.com/fastapi/full-stack-fastapi-template
+
+**Key Alignment Goals**:
+- Match database models, schemas, and relationships exactly (backend/app/models.py)
+- Follow authentication patterns (JWT, OAuth2) when implemented
+- Use same dependency injection patterns (backend/app/api/deps.py)
+- Mirror API routing structure and conventions
+- Maintain consistent error handling and HTTP status codes
+- Follow same testing patterns (pytest for backend)
+
+### When to Deviate
+
+The template allows intentional deviations for:
+- **Frontend**: PatternFly UI instead of default template (this is the main difference)
+- **E2E Testing**: Playwright instead of template's approach
+- **Deployment**: OpenShift/Kubernetes focus with Kustomize
+- **Simplified Features**: Temporary simplifications for testing (e.g., Items API without auth in Phase 2)
+
+### Guidelines for Following Template Patterns
+
+1. **Always reference the source template** when implementing features that exist there:
+   ```bash
+   # Compare files before implementing
+   diff backend/app/models.py /Users/cchase/git/github/fastapi/full-stack-fastapi-template/backend/app/models.py
+   ```
+
+2. **Match implementations exactly** for core infrastructure:
+   - Database configuration and connection pooling
+   - Security (password hashing, JWT tokens)
+   - User CRUD operations
+   - Authentication dependencies
+
+3. **Document intentional differences** in code comments when deviating from template
+
+4. **Update toward template** when removing temporary simplifications (e.g., adding authentication to Items API)
+
+## REST API Design Best Practices
+
+This project follows OpenAPI Specification best practices for RESTful API design.
+
+### Design-First Approach
+
+- **Design the API first**, then implement the code
+- Write OpenAPI descriptions before implementation when possible
+- This ensures the API can be properly described and validated
+- Prevents creating APIs that cannot be fully described in OpenAPI
+
+### Resource-Oriented Design
+
+- **Use nouns for resources**, not verbs
+  - Good: `GET /api/v1/items/`
+  - Avoid: `GET /api/v1/get-items/`
+- **Use plural nouns** for collections
+  - `/items` for collection, `/items/{id}` for individual item
+- **Keep resource URIs simple and hierarchical**
+  - Good: `/customers/{id}/orders`
+  - Avoid: `/customers/{id}/orders/{orderId}/products` (too deep)
+
+### HTTP Methods and Status Codes
+
+**GET** - Retrieve resources
+- 200 (OK): Successfully returned resource(s)
+- 404 (Not Found): Resource doesn't exist
+- 204 (No Content): No results (e.g., empty search)
+
+**POST** - Create resources
+- 201 (Created): Resource created, return URI in Location header
+- 400 (Bad Request): Invalid data in request
+- 409 (Conflict): Resource already exists
+
+**PUT** - Update entire resource (idempotent)
+- 200 (OK): Resource updated successfully
+- 201 (Created): Resource created (if creation via PUT is supported)
+- 404 (Not Found): Resource doesn't exist
+
+**PATCH** - Partial update
+- 200 (OK): Resource updated successfully
+- 400 (Bad Request): Malformed patch document
+- 409 (Conflict): Patch cannot be applied
+
+**DELETE** - Remove resource
+- 204 (No Content): Successfully deleted
+- 404 (Not Found): Resource doesn't exist
+
+### Pagination and Filtering
+
+- Implement pagination for list endpoints:
+  ```
+  GET /api/v1/items/?skip=0&limit=100
+  ```
+- Support filtering via query parameters:
+  ```
+  GET /api/v1/items/?owner_id={id}
+  ```
+- Provide sensible defaults (e.g., limit=100)
+
+### Versioning
+
+- Use URI versioning: `/api/v1/`, `/api/v2/`
+- Maintain backward compatibility within versions
+- Document breaking changes clearly
+
+### Data Validation
+
+- Use Pydantic schemas for request/response validation
+- Validate all input data
+- Return clear error messages for validation failures
+- Use appropriate HTTP status codes (400 for validation errors)
+
+### OpenAPI Documentation
+
+- **Maintain OpenAPI descriptions** in source control
+- Keep descriptions up-to-date with code
+- Make OpenAPI spec available to users (e.g., `/openapi.json`)
+- Use FastAPI's automatic OpenAPI generation at `/docs`
+
+### DRY Principle
+
+- Use `components` section for reusable schemas
+- Reference common schemas with `$ref`
+- Avoid duplicating model definitions
+- Share schemas across multiple endpoints
+
+### Current Implementation Status
+
+**Phase 2 (Current)**: Simplified Items API
+- Basic CRUD operations without authentication
+- Demonstrates full-stack flow before adding auth complexity
+- Uses hardcoded `owner_id` temporarily
+
+**Phase 3+ (Planned)**: Full REST compliance
+- Add JWT authentication to all endpoints
+- Implement proper authorization checks
+- Add HATEOAS links in responses
+- Support partial responses and field selection
+
+### Resources
+
+- [OpenAPI Specification](https://spec.openapis.org/oas/latest.html)
+- [OpenAPI Best Practices](https://learn.openapis.org/best-practices.html)
+- [FastAPI OpenAPI Docs](https://fastapi.tiangolo.com/tutorial/metadata/)
 
 ## Git Commit Guidelines
 
