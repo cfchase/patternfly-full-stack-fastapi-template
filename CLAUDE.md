@@ -4,22 +4,26 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Overview
 
-This is a React FastAPI template for building full-stack applications with React frontend (Vite) and FastAPI backend, designed for deployment to OpenShift using Docker containers and Kustomize.
+This is a PatternFly FastAPI template for building full-stack applications with React frontend (Vite + PatternFly UI) and FastAPI backend, designed for deployment to OpenShift using Docker containers and Kustomize.
 
 ## Project Structure
 
 ```
 ├── backend/              # FastAPI backend
-│   ├── main.py          # Main FastAPI application
+│   ├── main.py          # Main FastAPI application entry point
+│   ├── app/             # Application code
+│   │   └── api/        # API routes (versioned: /api/v1/...)
 │   ├── pyproject.toml   # Python dependencies (managed by uv)
 │   └── Dockerfile       # Backend container
-├── frontend/            # React frontend with Vite
-│   ├── src/            # React source code
+├── frontend/            # React frontend with Vite + PatternFly
+│   ├── src/
+│   │   └── app/        # App components (Dashboard, Settings, Support, etc.)
 │   ├── package.json    # Node.js dependencies
-│   └── Dockerfile      # Frontend container
+│   ├── vite.config.ts  # Vite configuration with /api proxy
+│   └── Dockerfile      # Frontend container (nginx-based)
 ├── k8s/                # Kubernetes/OpenShift manifests
 │   ├── base/          # Base kustomize resources
-│   └── overlays/      # Environment-specific overlays
+│   └── overlays/      # Environment-specific overlays (dev/prod)
 └── scripts/           # Deployment automation scripts
 ```
 
@@ -34,6 +38,24 @@ make dev-backend      # Run FastAPI server (port 8000)
 make help             # Show all available commands
 ```
 
+### Database Management (PostgreSQL)
+```bash
+make db-start         # Start PostgreSQL development container
+make db-stop          # Stop PostgreSQL container
+make db-status        # Check if PostgreSQL is running
+make db-shell         # Open PostgreSQL shell (psql)
+make db-logs          # Show PostgreSQL logs
+make db-reset         # Remove container and delete all data (destructive)
+```
+
+**Database Configuration:**
+- Container: `app-postgres-dev`
+- Volume: `app-db-data` (persistent storage)
+- Default credentials: `app/changethis`
+- Default database: `app`
+- Port: `5432`
+- PostgreSQL version: 15-alpine
+
 ### Building
 ```bash
 make build                 # Build frontend and container images
@@ -41,8 +63,13 @@ make build                 # Build frontend and container images
 
 ### Testing
 ```bash
-make test             # Run frontend tests
-make lint             # Run linting
+make test                    # Run all tests (frontend and backend)
+make test-frontend           # Run Vitest tests
+make test-backend            # Run pytest tests
+make test-backend-verbose    # Run pytest with verbose output
+make test-backend-coverage   # Run pytest with coverage report
+make test-backend-watch      # Run pytest in watch mode
+make lint                    # Run ESLint on frontend
 ```
 
 ### Container Registry (Quay.io)
@@ -79,20 +106,37 @@ make kustomize-prod   # Preview prod manifests
 
 ## Architecture
 
-### Frontend (React + Vite)
-- TypeScript for type safety
-- Vite for fast development and building
-- Axios for API communication
-- Simple UI with health check button
-- Vite dev server proxies /api/ to backend (local dev)
-- Nginx proxies /api/ to backend service (production)
+### Frontend (React + Vite + PatternFly)
+- **UI Framework**: PatternFly React components for enterprise-ready UI
+- **TypeScript** for type safety
+- **Vite** for fast development and building
+- **React Router** for client-side routing
+- **Vitest** for unit testing with browser mode support
+- **Page Structure**: Pre-built pages (Dashboard, Support, Settings with General/Profile subpages)
+- **Routing**: Route configuration in `src/app/routeConfig.tsx` with nested routes support
+- **API Communication**: Axios for HTTP requests
+- **Proxy Configuration**:
+  - Local dev: Vite dev server proxies `/api/` to `http://localhost:8000` (vite.config.ts:30-35)
+  - Production: Nginx proxies `/api/` to backend service
 
 ### Backend (FastAPI)
-- Python 3.11 with FastAPI framework
-- Uvicorn as ASGI server
-- CORS middleware for frontend integration
-- Minimal API with only health check endpoint at `/api/health`
-- UV package manager for fast, reliable dependency management
+- **Python 3.11+** with FastAPI framework
+- **Uvicorn** as ASGI server
+- **UV Package Manager**: Fast, reliable Python dependency management (replaces pip/poetry)
+  - Dependencies in `pyproject.toml`
+  - Add packages: `cd backend && uv add <package>`
+  - Sync dependencies: `cd backend && uv sync`
+- **Database**: PostgreSQL with SQLModel ORM (in development - being migrated from basic template)
+  - Container-based PostgreSQL for local development
+  - Alembic for database migrations
+  - Connection pooling and health checks
+- **API Structure**: Versioned routing pattern
+  - Main app: `main.py` includes router at `/api`
+  - API router: `app/api/router.py` includes v1 at `/api/v1`
+  - V1 router: `app/api/routes/v1/router.py` includes utils at `/api/v1/utils`
+  - Final endpoint: `/api/v1/utils/health-check` (health.py)
+- **CORS**: Configured for `localhost:8080` and `localhost:5173` (main.py:14-20)
+- **Testing**: pytest with async support configured in pyproject.toml
 
 ### Deployment
 - Docker containers for both services
@@ -110,29 +154,64 @@ make kustomize-prod   # Preview prod manifests
 
 ### Key Configuration
 - `vite.config.ts` - Vite configuration with proxy to backend
-- `docker-compose.yml` - Local development with containers
+- `scripts/dev-db.sh` - PostgreSQL container management for local development
 - `k8s/base/kustomization.yaml` - Base Kubernetes resources
 - `k8s/overlays/*/kustomization.yaml` - Environment-specific configs
 
 ## API Endpoints
 
 The FastAPI backend provides:
-- `GET /` - Root endpoint  
-- `GET /api/health` - Health check endpoint
+- `GET /` - Root endpoint (main.py:25-27)
+- `GET /api/v1/utils/health-check` - Health check endpoint (app/api/routes/v1/utils/health.py)
 
 ## Development Workflow
 
-1. Make changes to frontend (React) or backend (FastAPI)
-2. Test locally with `make dev`
-3. Build everything with `make build`
-4. Build and push containers with `make build && make push`
-5. Deploy to OpenShift with `make deploy` or `make deploy-prod`
+### Initial Setup
+1. Install dependencies: `make setup`
+2. Start PostgreSQL: `make db-start`
+3. Configure environment: `make env-setup` (creates .env files from examples)
+4. Start development servers: `make dev`
+
+### Daily Development
+1. Start database: `make db-start` (if not already running)
+2. Make changes to frontend (React) or backend (FastAPI)
+3. Test locally with `make dev`
+4. Run tests: `make test`
+
+### Deployment
+1. Build everything with `make build`
+2. Build and push containers with `make build && make push`
+3. Deploy to OpenShift with `make deploy` or `make deploy-prod`
 
 ## Common Tasks
 
 ### Adding New Dependencies
-- Frontend: `cd frontend && npm install <package>`
-- Backend: `cd backend && uv add <package>` (automatically updates pyproject.toml and uv.lock)
+- **Frontend**: `cd frontend && npm install <package>`
+- **Backend**: `cd backend && uv add <package>` (automatically updates pyproject.toml and uv.lock)
+  - For dev dependencies: `cd backend && uv add --dev <package>`
+
+### Adding New API Endpoints
+1. Create new route file in `backend/app/api/routes/v1/<feature>/`
+2. Create router and import into `backend/app/api/routes/v1/router.py`
+3. Router will be automatically available at `/api/v1/<feature>/...`
+
+### Adding New Frontend Pages
+1. Create component in `frontend/src/app/<PageName>/`
+2. Add route to `frontend/src/app/routeConfig.tsx`
+3. Route will appear in navigation sidebar if `label` is provided
+
+### Running Single Tests
+- **Frontend**: `cd frontend && npm run test -- <test-file-pattern>`
+- **Backend**: `cd backend && uv run pytest tests/<test-file>.py`
+- **Backend single test**: `cd backend && uv run pytest tests/<file>.py::<test_name> -v`
+
+### Managing the Development Database
+- **Start database**: `make db-start`
+- **Check status**: `make db-status`
+- **View logs**: `make db-logs`
+- **Access database shell**: `make db-shell` (connects to psql)
+- **Reset database**: `make db-reset` (WARNING: deletes all data)
+- **Stop database**: `make db-stop`
 
 ### Updating Container Images
 - Update image tags in `k8s/base/kustomization.yaml`
@@ -140,10 +219,9 @@ The FastAPI backend provides:
 
 ### Customizing for New Projects
 - Update image names in kustomization files
-- Update registry in build script
-- Add API endpoints in `backend/main.py`
-- Update frontend components in `frontend/src/`
-- The template provides a minimal foundation - add your business logic as needed
+- Update registry in Makefile (default: `quay.io/cfchase`)
+- Update page titles in `frontend/src/app/routeConfig.tsx` (currently "PatternFly Seed")
+- The template provides a foundation with example pages - customize or replace as needed
 
 ## Git Commit Guidelines
 
