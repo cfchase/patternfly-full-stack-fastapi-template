@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Dashboard } from '@app/Dashboard/Dashboard';
+import { ItemBrowser } from '@app/Items/ItemBrowser';
 import { Support } from '@app/Support/Support';
 import { GeneralSettings } from '@app/Settings/General/GeneralSettings';
 import { ProfileSettings } from '@app/Settings/Profile/ProfileSettings';
@@ -27,6 +28,13 @@ export const routes: AppRouteConfig[] = [
     label: 'Dashboard',
     path: '/',
     title: 'PatternFly Seed | Main Dashboard',
+  },
+  {
+    element: <ItemBrowser />,
+    exact: true,
+    label: 'Items',
+    path: '/items',
+    title: 'PatternFly Seed | Items',
   },
   {
     element: <Support />,

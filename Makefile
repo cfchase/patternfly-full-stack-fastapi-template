@@ -6,7 +6,7 @@ TAG ?= latest
 CONTAINER_TOOL ?= docker
 
 
-.PHONY: help setup dev build build-prod test clean push push-prod deploy deploy-prod undeploy undeploy-prod kustomize kustomize-prod db-start db-stop db-reset db-shell db-logs db-status
+.PHONY: help setup dev build build-prod test clean push push-prod deploy deploy-prod undeploy undeploy-prod kustomize kustomize-prod db-start db-stop db-reset db-shell db-logs db-status db-init db-seed
 
 # Default target
 help: ## Show this help message
@@ -58,6 +58,16 @@ db-logs: ## Show PostgreSQL logs
 
 db-status: ## Check PostgreSQL database status
 	@./scripts/dev-db.sh status
+
+db-init: ## Initialize database schema with Alembic migrations
+	@echo "Running database migrations..."
+	@cd backend && POSTGRES_SERVER=localhost POSTGRES_USER=app POSTGRES_PASSWORD=changethis POSTGRES_DB=app uv run alembic upgrade head
+	@echo "Database initialized!"
+
+db-seed: ## Seed database with test data (users and items)
+	@echo "Seeding database with test data..."
+	@cd backend && POSTGRES_SERVER=localhost POSTGRES_USER=app POSTGRES_PASSWORD=changethis POSTGRES_DB=app uv run python scripts/seed_test_data.py
+	@echo "Test data created!"
 
 # Building
 build-frontend: ## Build frontend for production
