@@ -197,8 +197,11 @@ oc delete job db-migration db-seed
 ## Configuration Files
 
 ### Environment Variables
-- `backend/.env` - Backend configuration (copy from .env.example)
-- `frontend/.env` - Frontend configuration (copy from .env.example)
+- `.env` - Root configuration file with all backend and frontend settings (copy from .env.example)
+- `backend/.env` - Backend-specific configuration (copy from backend/.env.example)
+- `frontend/.env` - Frontend-specific configuration (copy from frontend/.env.example)
+
+**Note**: The root `.env` file contains all settings needed for local development. Individual service `.env` files are maintained for backward compatibility and service-specific deployments.
 
 ### Key Configuration
 - `vite.config.ts` - Vite configuration with proxy to backend

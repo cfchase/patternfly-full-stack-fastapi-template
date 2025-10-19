@@ -174,6 +174,7 @@ db-init-cluster: ## Run migrations and seed data in the cluster
 # Environment Setup
 env-setup: ## Copy environment example files
 	@echo "Setting up environment files..."
+	@if [ ! -f .env ]; then cp .env.example .env; echo "Created .env (root)"; fi
 	@if [ ! -f backend/.env ]; then cp backend/.env.example backend/.env; echo "Created backend/.env"; fi
 	@if [ ! -f frontend/.env ]; then cp frontend/.env.example frontend/.env; echo "Created frontend/.env"; fi
 
