@@ -25,6 +25,12 @@ dependencies = [
     "uvicorn[standard]==0.34.3",
     "python-dotenv==1.1.1",
     "pydantic-settings==2.10.1",
+    # Database dependencies
+    "sqlmodel<1.0.0,>=0.0.21",
+    "alembic<2.0.0,>=1.12.1",
+    "psycopg[binary]<4.0.0,>=3.1.13",
+    "tenacity<9.0.0,>=8.2.3",
+    "email-validator<3.0.0.0,>=2.1.0.post1",
 ]
 
 [project.optional-dependencies]

@@ -7,7 +7,8 @@ from app.api.router import router as api_router
 app = FastAPI(
     title="React FastAPI Template API",
     description="A template API built with FastAPI",
-    version="1.0.0"
+    version="1.0.0",
+    redirect_slashes=False
 )
 
 # Configure CORS

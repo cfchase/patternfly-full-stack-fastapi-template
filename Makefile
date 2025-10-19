@@ -6,7 +6,7 @@ TAG ?= latest
 CONTAINER_TOOL ?= docker
 
 
-.PHONY: help setup dev build build-prod test clean push push-prod deploy deploy-prod undeploy undeploy-prod kustomize kustomize-prod
+.PHONY: help setup dev build build-prod test clean push push-prod deploy deploy-prod undeploy undeploy-prod kustomize kustomize-prod db-start db-stop db-reset db-shell db-logs db-status db-init db-seed db-migrate-cluster db-seed-cluster db-init-cluster
 
 # Default target
 help: ## Show this help message
@@ -38,6 +38,36 @@ dev-frontend: ## Run frontend development server
 
 dev-backend: ## Run backend development server
 	cd backend && uv run uvicorn main:app --reload --host 0.0.0.0 --port 8000
+
+# Database Management
+db-start: ## Start PostgreSQL development database
+	@chmod +x scripts/dev-db.sh
+	@./scripts/dev-db.sh start
+
+db-stop: ## Stop PostgreSQL development database
+	@./scripts/dev-db.sh stop
+
+db-reset: ## Reset PostgreSQL database (removes all data)
+	@./scripts/dev-db.sh reset
+
+db-shell: ## Open PostgreSQL shell
+	@./scripts/dev-db.sh shell
+
+db-logs: ## Show PostgreSQL logs
+	@./scripts/dev-db.sh logs
+
+db-status: ## Check PostgreSQL database status
+	@./scripts/dev-db.sh status
+
+db-init: ## Initialize database schema with Alembic migrations
+	@echo "Running database migrations..."
+	@cd backend && POSTGRES_SERVER=localhost POSTGRES_USER=app POSTGRES_PASSWORD=changethis POSTGRES_DB=app uv run alembic upgrade head
+	@echo "Database initialized!"
+
+db-seed: ## Seed database with test data (users and items)
+	@echo "Seeding database with test data..."
+	@cd backend && POSTGRES_SERVER=localhost POSTGRES_USER=app POSTGRES_PASSWORD=changethis POSTGRES_DB=app uv run python scripts/seed_test_data.py
+	@echo "Test data created!"
 
 # Building
 build-frontend: ## Build frontend for production
@@ -73,6 +103,16 @@ test-backend-coverage: ## Run backend tests with coverage
 test-backend-watch: ## Run backend tests in watch mode
 	cd backend && uv run pytest --watch
 
+test-e2e: ## Run end-to-end tests with Playwright
+	@echo "Running E2E tests..."
+	cd frontend && npm run test:e2e
+
+test-e2e-ui: ## Run E2E tests with Playwright UI
+	cd frontend && npm run test:e2e:ui
+
+test-e2e-headed: ## Run E2E tests in headed mode (visible browser)
+	cd frontend && npm run test:e2e:headed
+
 lint: ## Run linting on frontend
 	cd frontend && npm run lint
 
@@ -106,6 +146,30 @@ undeploy: ## Remove development deployment
 undeploy-prod: ## Remove production deployment
 	@echo "Removing production deployment..."
 	./scripts/undeploy.sh prod
+
+db-migrate-cluster: ## Run database migrations in the cluster
+	@echo "Running database migrations in cluster..."
+	@command -v oc >/dev/null 2>&1 && oc apply -f k8s/base/db-migration-job.yaml || kubectl apply -f k8s/base/db-migration-job.yaml
+	@echo "Waiting for migration job to complete..."
+	@command -v oc >/dev/null 2>&1 && oc wait --for=condition=complete --timeout=120s job/db-migration || kubectl wait --for=condition=complete --timeout=120s job/db-migration || true
+	@echo "Migration job logs:"
+	@command -v oc >/dev/null 2>&1 && oc logs job/db-migration || kubectl logs job/db-migration
+	@echo "To re-run migrations, first delete the job: oc delete job db-migration"
+
+db-seed-cluster: ## Seed database with test data in the cluster
+	@echo "Seeding database with test data in cluster..."
+	@command -v oc >/dev/null 2>&1 && oc apply -f k8s/base/db-seed-job.yaml || kubectl apply -f k8s/base/db-seed-job.yaml
+	@echo "Waiting for seed job to complete..."
+	@command -v oc >/dev/null 2>&1 && oc wait --for=condition=complete --timeout=120s job/db-seed || kubectl wait --for=condition=complete --timeout=120s job/db-seed || true
+	@echo "Seed job logs:"
+	@command -v oc >/dev/null 2>&1 && oc logs job/db-seed || kubectl logs job/db-seed
+	@echo "To re-run seeding, first delete the job: oc delete job db-seed"
+
+db-init-cluster: ## Run migrations and seed data in the cluster
+	@echo "Initializing database (migrations + seed data)..."
+	@$(MAKE) db-migrate-cluster
+	@echo ""
+	@$(MAKE) db-seed-cluster
 
 # Environment Setup
 env-setup: ## Copy environment example files

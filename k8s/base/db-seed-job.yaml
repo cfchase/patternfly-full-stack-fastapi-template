@@ -1,31 +1,27 @@
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: batch/v1
+kind: Job
 metadata:
-  name: backend
+  name: db-seed
   labels:
     app: backend
-    component: api
+    component: seed
 spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: backend
   template:
     metadata:
       labels:
         app: backend
-        component: api
+        component: seed
     spec:
+      restartPolicy: OnFailure
       containers:
-      - name: backend
+      - name: seed
         image: quay.io/cfchase/patternfly-fastapi-backend:latest
-        ports:
-        - containerPort: 8000
+        command:
+        - /bin/sh
+        - -c
+        - |
+          python scripts/seed_test_data.py
         env:
-        - name: PORT
-          value: "8000"
-        - name: ENVIRONMENT
-          value: "production"
         - name: POSTGRES_SERVER
           value: "postgres"
         - name: POSTGRES_PORT
@@ -50,22 +46,5 @@ spec:
             memory: "128Mi"
             cpu: "100m"
           limits:
-            memory: "512Mi"
-            cpu: "500m"
-        livenessProbe:
-          tcpSocket:
-            port: 8000
-          initialDelaySeconds: 30
-          periodSeconds: 10
-        readinessProbe:
-          httpGet:
-            path: /api/v1/utils/health-check
-            port: 8000
-          initialDelaySeconds: 5
-          periodSeconds: 5
-        securityContext:
-          allowPrivilegeEscalation: false
-          runAsNonRoot: true
-          capabilities:
-            drop:
-            - ALL
+            memory: "256Mi"
+            cpu: "250m"
