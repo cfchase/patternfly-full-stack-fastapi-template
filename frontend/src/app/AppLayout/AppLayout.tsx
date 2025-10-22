@@ -1,9 +1,10 @@
 import * as React from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   Button,
   Masthead,
   MastheadBrand,
+  MastheadContent,
   MastheadLogo,
   MastheadMain,
   MastheadToggle,
@@ -15,9 +16,19 @@ import {
   PageSidebar,
   PageSidebarBody,
   SkipToContent,
+  Toolbar,
+  ToolbarContent,
+  ToolbarGroup,
+  ToolbarItem,
+  Dropdown,
+  DropdownList,
+  DropdownItem,
+  MenuToggle,
+  MenuToggleElement,
 } from '@patternfly/react-core';
 import { IAppRoute, IAppRouteGroup, routes } from '@app/routeConfig';
-import { BarsIcon } from '@patternfly/react-icons';
+import { BarsIcon, UserIcon } from '@patternfly/react-icons';
+import { useAuth } from '@contexts/AuthContext';
 
 interface IAppLayout {
   children: React.ReactNode;
@@ -25,6 +36,65 @@ interface IAppLayout {
 
 const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = React.useState(true);
+  const [isUserDropdownOpen, setIsUserDropdownOpen] = React.useState(false);
+  const { user, logout, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+
+  const onUserDropdownToggle = () => {
+    setIsUserDropdownOpen(!isUserDropdownOpen);
+  };
+
+  const onUserDropdownSelect = () => {
+    setIsUserDropdownOpen(false);
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
+  const userDropdownItems = (
+    <DropdownList>
+      <DropdownItem key="profile" onClick={() => navigate('/settings/profile')}>
+        Profile Settings
+      </DropdownItem>
+      <DropdownItem key="logout" onClick={handleLogout}>
+        Logout
+      </DropdownItem>
+    </DropdownList>
+  );
+
+  const userToggle = (toggleRef: React.Ref<MenuToggleElement>) => (
+    <MenuToggle
+      ref={toggleRef}
+      onClick={onUserDropdownToggle}
+      isExpanded={isUserDropdownOpen}
+      icon={<UserIcon />}
+    >
+      {user?.full_name || user?.email || 'User'}
+    </MenuToggle>
+  );
+
+  const headerToolbar = isAuthenticated ? (
+    <Toolbar id="toolbar" isFullHeight isStatic>
+      <ToolbarContent>
+        <ToolbarGroup variant="icon-button-group" align={{ default: 'alignEnd' }}>
+          <ToolbarItem>
+            <Dropdown
+              onSelect={onUserDropdownSelect}
+              toggle={userToggle}
+              isOpen={isUserDropdownOpen}
+              onOpenChange={(isOpen: boolean) => setIsUserDropdownOpen(isOpen)}
+              popperProps={{ position: 'right' }}
+            >
+              {userDropdownItems}
+            </Dropdown>
+          </ToolbarItem>
+        </ToolbarGroup>
+      </ToolbarContent>
+    </Toolbar>
+  ) : null;
+
   const masthead = (
     <Masthead>
       <MastheadMain>
@@ -83,6 +153,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
           </MastheadLogo>
         </MastheadBrand>
       </MastheadMain>
+      {headerToolbar && <MastheadContent>{headerToolbar}</MastheadContent>}
     </Masthead>
   );
 

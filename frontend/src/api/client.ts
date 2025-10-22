@@ -2,7 +2,7 @@
  * Axios client configured with authentication interceptors.
  */
 import axios, { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from 'axios';
-import { getToken, removeToken } from '../utils/auth';
+import { getToken, removeToken } from '@utils/auth';
 
 // Base URL from environment variable or default to current origin
 const baseURL = import.meta.env.VITE_API_URL || '';
