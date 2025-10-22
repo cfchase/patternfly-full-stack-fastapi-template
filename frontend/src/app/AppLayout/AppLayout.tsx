@@ -78,7 +78,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
   const headerToolbar = isAuthenticated ? (
     <Toolbar id="toolbar" isFullHeight isStatic>
       <ToolbarContent>
-        <ToolbarGroup variant="icon-button-group" align={{ default: 'alignEnd' }}>
+        <ToolbarGroup align={{ default: 'alignEnd' }}>
           <ToolbarItem>
             <Dropdown
               onSelect={onUserDropdownSelect}

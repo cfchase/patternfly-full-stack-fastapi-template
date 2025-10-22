@@ -5,7 +5,7 @@ import React, { createContext, useContext, useEffect, useState, ReactNode } from
 import { UserPublic } from '@api/auth';
 import { getCurrentUser } from '@api/users';
 import { login as apiLogin, register as apiRegister, RegisterRequest } from '@api/auth';
-import { getToken, setToken, removeToken, isAuthenticated as checkAuth } from '@utils/auth';
+import { setToken, removeToken, isAuthenticated as checkAuth } from '@utils/auth';
 
 interface AuthContextType {
   user: UserPublic | null;

@@ -266,7 +266,6 @@ const UsersManagement: React.FunctionComponent = () => {
             label="Password"
             isRequired={modalMode === 'create'}
             fieldId="user-password"
-            helperText={modalMode === 'edit' ? 'Leave blank to keep current password' : undefined}
           >
             <TextInput
               isRequired={modalMode === 'create'}
@@ -274,6 +273,7 @@ const UsersManagement: React.FunctionComponent = () => {
               id="user-password"
               value={formPassword}
               onChange={(_event, value) => setFormPassword(value)}
+              placeholder={modalMode === 'edit' ? 'Leave blank to keep current password' : ''}
             />
           </FormGroup>
           <FormGroup fieldId="user-active">

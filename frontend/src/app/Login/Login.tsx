@@ -6,8 +6,6 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import {
   LoginPage as PFLoginPage,
   LoginForm,
-  ListVariant,
-  ListItem,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { useAuth } from '@contexts/AuthContext';
@@ -99,20 +97,10 @@ export const Login: React.FunctionComponent = () => {
     />
   );
 
-  const images = {
-    lg: '/images/pfbg_1200.jpg',
-    sm: '/images/pfbg_768.jpg',
-    sm2x: '/images/pfbg_768@2x.jpg',
-    xs: '/images/pfbg_576.jpg',
-    xs2x: '/images/pfbg_576@2x.jpg',
-  };
-
   return (
     <PFLoginPage
-      footerListVariants={ListVariant.inline}
       brandImgSrc="/images/logo.svg"
       brandImgAlt="PatternFly logo"
-      backgroundImgSrc={images}
       textContent="Full-stack application with authentication"
       loginTitle="Log in to your account"
       loginSubtitle="Enter your email and password"
