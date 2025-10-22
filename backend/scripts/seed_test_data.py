@@ -1,20 +1,49 @@
 """Seed database with test data for development."""
+import logging
 import uuid
+
 from sqlmodel import Session, select
 
+from app.core.config import settings
 from app.core.db import engine
-from app.models import User, Item
+from app.core.security import get_password_hash
+from app.models import Item, User
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Default password for all test users (for development only)
+TEST_USER_PASSWORD = "testpassword123"
 
 
 def seed_test_data() -> None:
     """Create test users and items for development."""
     with Session(engine) as session:
-        # Create test users
+        # First, ensure the first superuser exists (from initial_data.py)
+        first_superuser = session.exec(
+            select(User).where(User.email == settings.FIRST_SUPERUSER)
+        ).first()
+
+        if not first_superuser:
+            logger.warning(f"First superuser {settings.FIRST_SUPERUSER} not found. Creating...")
+            first_superuser = User(
+                email=settings.FIRST_SUPERUSER,
+                hashed_password=get_password_hash(settings.FIRST_SUPERUSER_PASSWORD),
+                is_superuser=True,
+                is_active=True,
+                full_name="Admin User",
+            )
+            session.add(first_superuser)
+            session.commit()
+            session.refresh(first_superuser)
+            logger.info(f"✅ Created first superuser: {first_superuser.email}")
+
+        # Create additional test users with real password hashes
         test_users = [
             User(
                 id=uuid.UUID("00000000-0000-0000-0000-000000000001"),
                 email="john.smith@example.com",
-                hashed_password="not_a_real_password_hash",
+                hashed_password=get_password_hash(TEST_USER_PASSWORD),
                 full_name="John Smith",
                 is_active=True,
                 is_superuser=False,
@@ -22,7 +51,7 @@ def seed_test_data() -> None:
             User(
                 id=uuid.UUID("00000000-0000-0000-0000-000000000002"),
                 email="sarah.johnson@example.com",
-                hashed_password="not_a_real_password_hash",
+                hashed_password=get_password_hash(TEST_USER_PASSWORD),
                 full_name="Sarah Johnson",
                 is_active=True,
                 is_superuser=False,
@@ -30,7 +59,7 @@ def seed_test_data() -> None:
             User(
                 id=uuid.UUID("00000000-0000-0000-0000-000000000003"),
                 email="mike.chen@example.com",
-                hashed_password="not_a_real_password_hash",
+                hashed_password=get_password_hash(TEST_USER_PASSWORD),
                 full_name="Mike Chen",
                 is_active=True,
                 is_superuser=True,
@@ -39,13 +68,15 @@ def seed_test_data() -> None:
 
         users_created = 0
         for user in test_users:
-            existing_user = session.get(User, user.id)
+            existing_user = session.exec(
+                select(User).where(User.email == user.email)
+            ).first()
             if not existing_user:
                 session.add(user)
                 users_created += 1
 
         session.commit()
-        print(f"✅ Created {users_created} test users")
+        logger.info(f"✅ Created {users_created} test users (password: {TEST_USER_PASSWORD})")
 
         # Create test items
         test_items = [
@@ -102,7 +133,7 @@ def seed_test_data() -> None:
                 items_created += 1
 
         session.commit()
-        print(f"✅ Created {items_created} test items")
+        logger.info(f"✅ Created {items_created} test items")
 
 
 if __name__ == "__main__":

@@ -23,6 +23,10 @@
     "baseUrl": ".",
     "paths": {
       "@app/*": ["src/app/*"],
+      "@api/*": ["src/api/*"],
+      "@components/*": ["src/components/*"],
+      "@contexts/*": ["src/contexts/*"],
+      "@utils/*": ["src/utils/*"],
       "@assets/*": ["node_modules/@patternfly/react-core/dist/styles/assets/*"]
     },
     "types": ["vite/client", "vitest/globals"]

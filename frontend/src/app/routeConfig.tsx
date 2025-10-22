@@ -4,6 +4,8 @@ import { ItemBrowser } from '@app/Items/ItemBrowser';
 import { Support } from '@app/Support/Support';
 import { GeneralSettings } from '@app/Settings/General/GeneralSettings';
 import { ProfileSettings } from '@app/Settings/Profile/ProfileSettings';
+import { UsersManagement } from '@app/Users/UsersManagement';
+import { Login } from '@app/Login/Login';
 
 export interface IAppRoute {
   label?: string; // Excluding the label will exclude the route from the nav sidebar in AppLayout
@@ -23,6 +25,12 @@ export type AppRouteConfig = IAppRoute | IAppRouteGroup;
 
 export const routes: AppRouteConfig[] = [
   {
+    element: <Login />,
+    exact: true,
+    path: '/login',
+    title: 'PatternFly Seed | Login',
+  },
+  {
     element: <Dashboard />,
     exact: true,
     label: 'Dashboard',
@@ -35,6 +43,13 @@ export const routes: AppRouteConfig[] = [
     label: 'Items',
     path: '/items',
     title: 'PatternFly Seed | Items',
+  },
+  {
+    element: <UsersManagement />,
+    exact: true,
+    label: 'Users',
+    path: '/users',
+    title: 'PatternFly Seed | Users Management',
   },
   {
     element: <Support />,
