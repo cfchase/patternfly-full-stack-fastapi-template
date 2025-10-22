@@ -53,7 +53,11 @@ class TestLoginAccessToken:
     def test_login_access_token_inactive_user(
         self, client: TestClient, session: Session
     ):
-        """Test login with inactive user account."""
+        """Test login with inactive user account.
+
+        Verifies that inactive users cannot login and receive a generic
+        error message (not revealing the account exists or is inactive).
+        """
         from app.core.security import get_password_hash
 
         # Create inactive user
@@ -72,7 +76,8 @@ class TestLoginAccessToken:
         response = client.post("/api/v1/login/access-token", data=login_data)
 
         assert response.status_code == 400
-        assert "Inactive user" in response.json()["detail"]
+        # Should return generic message to prevent information disclosure
+        assert "Incorrect email or password" in response.json()["detail"]
 
     def test_login_access_token_missing_credentials(self, client: TestClient):
         """Test login with missing credentials."""
