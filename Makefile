@@ -18,15 +18,15 @@ help: ## Show this help message
 setup: ## Install all dependencies
 	@echo "Installing frontend dependencies..."
 	cd frontend && npm install
-	@echo "Installing backend dependencies..."
-	cd backend && uv sync
+	@echo "Installing backend dependencies (including dev dependencies)..."
+	cd backend && uv sync --extra dev
 	@echo "Setup complete!"
 
 setup-frontend: ## Install frontend dependencies only
 	cd frontend && npm install
 
-setup-backend: ## Install backend dependencies only
-	cd backend && uv sync
+setup-backend: ## Install backend dependencies only (including dev dependencies for testing)
+	cd backend && uv sync --extra dev
 
 # Development
 dev: ## Run both frontend and backend in development mode
