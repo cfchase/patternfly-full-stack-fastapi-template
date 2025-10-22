@@ -10,6 +10,12 @@ import {
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { useAuth } from '@contexts/AuthContext';
 
+interface LocationState {
+  from?: {
+    pathname: string;
+  };
+}
+
 export const Login: React.FunctionComponent = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -53,7 +59,7 @@ export const Login: React.FunctionComponent = () => {
       await login(usernameValue, passwordValue);
 
       // Redirect to the page they tried to visit or dashboard
-      const from = (location.state as any)?.from?.pathname || '/';
+      const from = (location.state as LocationState)?.from?.pathname || '/';
       navigate(from, { replace: true });
     } catch (error: any) {
       setShowHelperText(true);
