@@ -4,6 +4,7 @@ import { ItemBrowser } from '@app/Items/ItemBrowser';
 import { Support } from '@app/Support/Support';
 import { GeneralSettings } from '@app/Settings/General/GeneralSettings';
 import { ProfileSettings } from '@app/Settings/Profile/ProfileSettings';
+import { UsersManagement } from '@app/Users/UsersManagement';
 import { Login } from '@app/Login/Login';
 
 export interface IAppRoute {
@@ -42,6 +43,13 @@ export const routes: AppRouteConfig[] = [
     label: 'Items',
     path: '/items',
     title: 'PatternFly Seed | Items',
+  },
+  {
+    element: <UsersManagement />,
+    exact: true,
+    label: 'Users',
+    path: '/users',
+    title: 'PatternFly Seed | Users Management',
   },
   {
     element: <Support />,

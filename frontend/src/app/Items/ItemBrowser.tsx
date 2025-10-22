@@ -1,3 +1,7 @@
+/**
+ * Item browser with CRUD operations.
+ * Shows owner information for superusers.
+ */
 import * as React from 'react';
 import {
   PageSection,
@@ -42,10 +46,15 @@ import {
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import SearchIcon from '@patternfly/react-icons/dist/esm/icons/search-icon';
 import { EditIcon, TrashIcon } from '@patternfly/react-icons';
-import { itemService, Item, ItemCreate, ItemUpdate } from '@app/services/itemService';
+import { getItems, createItem, updateItem, deleteItem, ItemCreate, ItemUpdate, ItemPublic } from '@api/items';
+import { getUserById } from '@api/users';
+import { UserPublic } from '@api/auth';
+import { useAuth } from '@contexts/AuthContext';
 
 const ItemBrowser: React.FunctionComponent = () => {
-  const [items, setItems] = React.useState<Item[]>([]);
+  const { user: currentUser } = useAuth();
+  const [items, setItems] = React.useState<ItemPublic[]>([]);
+  const [owners, setOwners] = React.useState<Map<string, UserPublic>>(new Map());
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [success, setSuccess] = React.useState<string | null>(null);
@@ -55,7 +64,7 @@ const ItemBrowser: React.FunctionComponent = () => {
 
   // Modal state
   const [isModalOpen, setIsModalOpen] = React.useState(false);
-  const [editingItem, setEditingItem] = React.useState<Item | null>(null);
+  const [editingItem, setEditingItem] = React.useState<ItemPublic | null>(null);
   const [formTitle, setFormTitle] = React.useState('');
   const [formDescription, setFormDescription] = React.useState('');
 
@@ -81,12 +90,35 @@ const ItemBrowser: React.FunctionComponent = () => {
     [filteredItems, selectedItemId]
   );
 
+  // Load owner information for superusers
+  const loadOwners = React.useCallback(async (items: ItemPublic[]) => {
+    if (!currentUser?.is_superuser) return;
+
+    const ownerMap = new Map<string, UserPublic>();
+    const uniqueOwnerIds = [...new Set(items.map(item => item.owner_id))];
+
+    await Promise.all(
+      uniqueOwnerIds.map(async (ownerId) => {
+        try {
+          const owner = await getUserById(ownerId);
+          ownerMap.set(ownerId, owner);
+        } catch (err) {
+          console.error(`Failed to load owner ${ownerId}:`, err);
+        }
+      })
+    );
+
+    setOwners(ownerMap);
+  }, [currentUser]);
+
   const loadItems = async () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await itemService.getItems();
+      const response = await getItems();
       setItems(response.data);
+      // Load owner information if superuser
+      await loadOwners(response.data);
     } catch (err) {
       setError('Failed to load items');
       console.error('Error loading items:', err);
@@ -141,7 +173,7 @@ const ItemBrowser: React.FunctionComponent = () => {
     setIsModalOpen(true);
   };
 
-  const handleOpenEditModal = (item: Item) => {
+  const handleOpenEditModal = (item: ItemPublic) => {
     setEditingItem(item);
     setFormTitle(item.title);
     setFormDescription(item.description || '');
@@ -167,7 +199,7 @@ const ItemBrowser: React.FunctionComponent = () => {
           title: formTitle,
           description: formDescription || undefined,
         };
-        await itemService.updateItem(editingItem.id, updates);
+        await updateItem(editingItem.id, updates);
         setSuccess('Item updated successfully');
       } else {
         // Create new item
@@ -175,7 +207,7 @@ const ItemBrowser: React.FunctionComponent = () => {
           title: formTitle,
           description: formDescription || undefined,
         };
-        await itemService.createItem(newItem);
+        await createItem(newItem);
         setSuccess('Item created successfully');
       }
       handleCloseModal();
@@ -186,7 +218,7 @@ const ItemBrowser: React.FunctionComponent = () => {
     }
   };
 
-  const handleDelete = async (item: Item) => {
+  const handleDelete = async (item: ItemPublic) => {
     if (!confirm(`Are you sure you want to delete "${item.title}"?`)) {
       return;
     }
@@ -195,13 +227,25 @@ const ItemBrowser: React.FunctionComponent = () => {
     setSuccess(null);
 
     try {
-      await itemService.deleteItem(item.id);
+      await deleteItem(item.id);
       setSuccess('Item deleted successfully');
       loadItems();
+      if (selectedItemId === item.id) {
+        setIsDrawerExpanded(false);
+      }
     } catch (err) {
       setError('Failed to delete item');
       console.error('Error deleting item:', err);
     }
+  };
+
+  const getOwnerDisplay = (ownerId: string) => {
+    if (!currentUser?.is_superuser) return ownerId;
+    const owner = owners.get(ownerId);
+    if (owner) {
+      return `${owner.email}${owner.full_name ? ` (${owner.full_name})` : ''}`;
+    }
+    return ownerId;
   };
 
   const panelContent = selectedItem && (
@@ -230,8 +274,8 @@ const ItemBrowser: React.FunctionComponent = () => {
                 <DescriptionListDescription>{selectedItem.id}</DescriptionListDescription>
               </DescriptionListGroup>
               <DescriptionListGroup>
-                <DescriptionListTerm>Owner ID</DescriptionListTerm>
-                <DescriptionListDescription>{selectedItem.owner_id}</DescriptionListDescription>
+                <DescriptionListTerm>Owner</DescriptionListTerm>
+                <DescriptionListDescription>{getOwnerDisplay(selectedItem.owner_id)}</DescriptionListDescription>
               </DescriptionListGroup>
             </DescriptionList>
           </StackItem>
@@ -362,7 +406,8 @@ const ItemBrowser: React.FunctionComponent = () => {
             <Thead>
               <Tr>
                 <Th width={25}>Title</Th>
-                <Th width={60}>Description</Th>
+                <Th width={currentUser?.is_superuser ? 40 : 60}>Description</Th>
+                {currentUser?.is_superuser && <Th width={20}>Owner</Th>}
                 <Th width={15}>Actions</Th>
               </Tr>
             </Thead>
@@ -376,6 +421,9 @@ const ItemBrowser: React.FunctionComponent = () => {
                 >
                   <Td dataLabel="Title">{item.title}</Td>
                   <Td dataLabel="Description">{item.description || <em>No description</em>}</Td>
+                  {currentUser?.is_superuser && (
+                    <Td dataLabel="Owner">{getOwnerDisplay(item.owner_id)}</Td>
+                  )}
                   <Td dataLabel="Actions" isActionCell>
                     <Flex spaceItems={{ default: 'spaceItemsNone' }}>
                       <FlexItem>
