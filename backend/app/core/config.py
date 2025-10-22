@@ -1,4 +1,3 @@
-import secrets
 from typing import Annotated, Any, Literal
 
 from pydantic import (
@@ -33,7 +32,9 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "PatternFly FastAPI Template"
 
     # Security
-    SECRET_KEY: str = secrets.token_urlsafe(32)
+    # CRITICAL: This must be set in .env and remain constant across restarts
+    # Generate a secure key with: python -c "import secrets; print(secrets.token_urlsafe(32))"
+    SECRET_KEY: str = "changethis"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # 8 days
 
     # First Superuser
