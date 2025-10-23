@@ -10,11 +10,23 @@ class UserBase(SQLModel):
     is_active: bool = True
     is_superuser: bool = False
     full_name: str | None = Field(default=None, max_length=255)
+    oauth_provider: str | None = Field(default=None, max_length=50)
+    external_id: str | None = Field(default=None, max_length=255)
 
 
 # Properties to receive via API on creation
 class UserCreate(UserBase):
     password: str = Field(min_length=8, max_length=40)
+
+
+# Properties to create user from OAuth headers (no password required)
+class UserCreateFromOAuth(SQLModel):
+    email: EmailStr = Field(max_length=255)
+    full_name: str | None = Field(default=None, max_length=255)
+    oauth_provider: str = Field(max_length=50)
+    external_id: str | None = Field(default=None, max_length=255)
+    is_active: bool = True
+    is_superuser: bool = False
 
 
 class UserRegister(SQLModel):
@@ -42,7 +54,7 @@ class UpdatePassword(SQLModel):
 # Database model, database table inferred from class name
 class User(UserBase, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    hashed_password: str
+    hashed_password: str | None = Field(default=None)  # Nullable for OAuth users
     items: list["Item"] = Relationship(back_populates="owner", cascade_delete=True)
 
 

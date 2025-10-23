@@ -1,4 +1,3 @@
-import secrets
 from typing import Annotated, Any, Literal
 
 from pydantic import (
@@ -32,8 +31,27 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
     PROJECT_NAME: str = "PatternFly FastAPI Template"
 
-    # Security
-    SECRET_KEY: str = secrets.token_urlsafe(32)
+    # Authentication Mode
+    # "jwt" - Traditional JWT authentication (default for local dev)
+    # "oauth2-proxy" - OAuth2-proxy with header-based authentication
+    # "hybrid" - Support both JWT and OAuth2-proxy
+    AUTH_MODE: str = "jwt"
+
+    # OAuth2-Proxy Configuration
+    OAUTH2_PROXY_USER_HEADER: str = "X-Forwarded-User"
+    OAUTH2_PROXY_EMAIL_HEADER: str = "X-Forwarded-Email"
+    OAUTH2_PROXY_GROUPS_HEADER: str = "X-Forwarded-Groups"
+    OAUTH2_PROXY_PREFERRED_USERNAME_HEADER: str = "X-Forwarded-Preferred-Username"
+
+    # Security (JWT)
+    # CRITICAL: This must be set in .env and remain constant across restarts
+    # Generate a secure key with: python -c "import secrets; print(secrets.token_urlsafe(32))"
+    SECRET_KEY: str = "changethis"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # 8 days
+
+    # First Superuser
+    FIRST_SUPERUSER: str
+    FIRST_SUPERUSER_PASSWORD: str
 
     # Environment
     ENVIRONMENT: Literal["local", "staging", "production"] = "local"

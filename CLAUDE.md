@@ -250,6 +250,7 @@ Note: Authentication will be added in Phase 3. Current implementation uses hardc
 - **Frontend**: `cd frontend && npm install <package>`
 - **Backend**: `cd backend && uv add <package>` (automatically updates pyproject.toml and uv.lock)
   - For dev dependencies: `cd backend && uv add --dev <package>`
+  - **Important**: After adding dependencies, run `uv sync --extra dev` to install dev dependencies (pytest, httpx, etc.) needed for testing
 
 ### Adding New API Endpoints
 1. Create new route file in `backend/app/api/routes/v1/<feature>/`
