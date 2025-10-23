@@ -31,7 +31,19 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
     PROJECT_NAME: str = "PatternFly FastAPI Template"
 
-    # Security
+    # Authentication Mode
+    # "jwt" - Traditional JWT authentication (default for local dev)
+    # "oauth2-proxy" - OAuth2-proxy with header-based authentication
+    # "hybrid" - Support both JWT and OAuth2-proxy
+    AUTH_MODE: str = "jwt"
+
+    # OAuth2-Proxy Configuration
+    OAUTH2_PROXY_USER_HEADER: str = "X-Forwarded-User"
+    OAUTH2_PROXY_EMAIL_HEADER: str = "X-Forwarded-Email"
+    OAUTH2_PROXY_GROUPS_HEADER: str = "X-Forwarded-Groups"
+    OAUTH2_PROXY_PREFERRED_USERNAME_HEADER: str = "X-Forwarded-Preferred-Username"
+
+    # Security (JWT)
     # CRITICAL: This must be set in .env and remain constant across restarts
     # Generate a secure key with: python -c "import secrets; print(secrets.token_urlsafe(32))"
     SECRET_KEY: str = "changethis"
