@@ -156,6 +156,59 @@ exports[`App tests > should render default App component 1`] = `
           </span>
         </div>
       </div>
+      <div
+        class="pf-v6-c-masthead__content"
+      >
+        <div
+          class="pf-v6-c-toolbar pf-m-static"
+          data-ouia-component-id="OUIA-Generated-Toolbar-1"
+          data-ouia-component-type="PF6/Toolbar"
+          data-ouia-safe="true"
+          id="masthead-toolbar"
+        >
+          <div
+            class="pf-v6-c-toolbar__content"
+          >
+            <div
+              class="pf-v6-c-toolbar__content-section"
+            >
+              <div
+                class="pf-v6-c-toolbar__group pf-m-action-group-plain pf-m-align-end"
+              >
+                <div
+                  class="pf-v6-c-toolbar__item"
+                >
+                  <svg
+                    aria-label="Loading user information"
+                    aria-valuetext="Loading..."
+                    class="pf-v6-c-spinner pf-m-md"
+                    role="progressbar"
+                    viewBox="0 0 100 100"
+                  >
+                    <circle
+                      class="pf-v6-c-spinner__path"
+                      cx="50"
+                      cy="50"
+                      fill="none"
+                      r="45"
+                    />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div
+            class="pf-v6-c-toolbar__content pf-m-hidden"
+            hidden=""
+          >
+            <div
+              aria-hidden="true"
+              class="pf-v6-c-toolbar__group pf-m-hidden"
+              hidden=""
+            />
+          </div>
+        </div>
+      </div>
     </header>
     <div
       aria-hidden="false"
@@ -202,6 +255,20 @@ exports[`App tests > should render default App component 1`] = `
               <a
                 class="pf-v6-c-nav__link"
                 data-discover="true"
+                href="/items"
+              >
+                Items
+              </a>
+            </li>
+            <li
+              class="pf-v6-c-nav__item"
+              data-ouia-component-id="OUIA-Generated-NavItem-3"
+              data-ouia-component-type="PF6/NavItem"
+              data-ouia-safe="true"
+            >
+              <a
+                class="pf-v6-c-nav__link"
+                data-discover="true"
                 href="/support"
               >
                 Support
@@ -216,7 +283,7 @@ exports[`App tests > should render default App component 1`] = `
               <button
                 aria-expanded="false"
                 class="pf-v6-c-nav__link"
-                id="Settings-2"
+                id="Settings-3"
               >
                 Settings
                 <span
@@ -242,9 +309,10 @@ exports[`App tests > should render default App component 1`] = `
                 </span>
               </button>
               <section
-                aria-labelledby="Settings-2"
+                aria-labelledby="Settings-3"
                 class="pf-v6-c-nav__subnav"
                 hidden=""
+                inert=""
               >
                 <ul
                   class="pf-v6-c-nav__list"
@@ -252,7 +320,7 @@ exports[`App tests > should render default App component 1`] = `
                 >
                   <li
                     class="pf-v6-c-nav__item"
-                    data-ouia-component-id="OUIA-Generated-NavItem-3"
+                    data-ouia-component-id="OUIA-Generated-NavItem-4"
                     data-ouia-component-type="PF6/NavItem"
                     data-ouia-safe="true"
                   >
@@ -266,7 +334,7 @@ exports[`App tests > should render default App component 1`] = `
                   </li>
                   <li
                     class="pf-v6-c-nav__item"
-                    data-ouia-component-id="OUIA-Generated-NavItem-4"
+                    data-ouia-component-id="OUIA-Generated-NavItem-5"
                     data-ouia-component-type="PF6/NavItem"
                     data-ouia-safe="true"
                   >

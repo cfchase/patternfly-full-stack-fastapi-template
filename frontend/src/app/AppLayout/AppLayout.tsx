@@ -2,11 +2,16 @@ import * as React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   Button,
+  Dropdown,
+  DropdownItem,
+  DropdownList,
   Masthead,
   MastheadBrand,
+  MastheadContent,
   MastheadLogo,
   MastheadMain,
   MastheadToggle,
+  MenuToggle,
   Nav,
   NavExpandable,
   NavItem,
@@ -15,16 +20,31 @@ import {
   PageSidebar,
   PageSidebarBody,
   SkipToContent,
+  Spinner,
+  Toolbar,
+  ToolbarContent,
+  ToolbarGroup,
+  ToolbarItem,
 } from '@patternfly/react-core';
 import { IAppRoute, IAppRouteGroup, routes } from '@app/routeConfig';
 import { BarsIcon } from '@patternfly/react-icons';
+import { useApp } from '@app/contexts/AppContext';
+import { userService } from '@app/services/userService';
 
 interface IAppLayout {
   children: React.ReactNode;
 }
 
 const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
+  const { currentUser, isLoadingUser } = useApp();
   const [sidebarOpen, setSidebarOpen] = React.useState(true);
+  const [isUserMenuOpen, setIsUserMenuOpen] = React.useState(false);
+
+  const handleLogout = () => {
+    setIsUserMenuOpen(false);
+    userService.logout();
+  };
+
   const masthead = (
     <Masthead>
       <MastheadMain>
@@ -83,6 +103,42 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
           </MastheadLogo>
         </MastheadBrand>
       </MastheadMain>
+      <MastheadContent>
+        <Toolbar id="masthead-toolbar" isStatic>
+          <ToolbarContent>
+            <ToolbarGroup variant="action-group-plain" align={{ default: 'alignEnd' }}>
+              <ToolbarItem>
+                {isLoadingUser ? (
+                  <Spinner size="md" aria-label="Loading user information" />
+                ) : (
+                  <Dropdown
+                    popperProps={{ position: 'right' }}
+                    onOpenChange={(isOpen) => setIsUserMenuOpen(isOpen)}
+                    toggle={(toggleRef) => (
+                      <MenuToggle
+                        aria-label="User menu"
+                        id="user-menu-toggle"
+                        ref={toggleRef}
+                        onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                        isExpanded={isUserMenuOpen}
+                      >
+                        {currentUser?.email || currentUser?.username || 'Unknown'}
+                      </MenuToggle>
+                    )}
+                    isOpen={isUserMenuOpen}
+                  >
+                    <DropdownList>
+                      <DropdownItem key="logout" onClick={handleLogout}>
+                        Log out
+                      </DropdownItem>
+                    </DropdownList>
+                  </Dropdown>
+                )}
+              </ToolbarItem>
+            </ToolbarGroup>
+          </ToolbarContent>
+        </Toolbar>
+      </MastheadContent>
     </Masthead>
   );
 

@@ -1,4 +1,14 @@
+"""
+Application configuration with environment-based settings.
+
+This module uses Pydantic Settings for automatic environment variable loading
+and validation following FastAPI best practices.
+"""
+
+import os
 import secrets
+import tomllib
+from pathlib import Path
 from typing import Annotated, Any, Literal
 
 from pydantic import (
@@ -19,24 +29,59 @@ def parse_cors(v: Any) -> list[str] | str:
     raise ValueError(v)
 
 
+def _load_app_version_from_pyproject() -> str:
+    """Load application version from pyproject.toml"""
+    try:
+        pyproject_path = Path(__file__).parent.parent.parent / "pyproject.toml"
+
+        if not pyproject_path.exists():
+            # Fallback for when running from different directories
+            return "0.0.0"
+
+        with open(pyproject_path, "rb") as f:
+            config = tomllib.load(f)
+            version = config.get("project", {}).get("version")
+
+            if not version:
+                return "0.0.0"
+
+            return version
+
+    except Exception:
+        return "0.0.0"
+
+
 class Settings(BaseSettings):
-    """Application settings with database configuration"""
+    """
+    Application settings with validation.
+
+    Uses Pydantic Settings for automatic environment variable loading
+    and validation following FastAPI best practices.
+
+    All settings have sensible defaults for local development,
+    allowing zero-config startup.
+    """
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        # Disable .env loading when TESTING=1 (set by conftest.py)
+        # This ensures tests use only explicitly set env vars
+        env_file=None if os.getenv("TESTING") else ".env",
         env_ignore_empty=True,
         extra="ignore",
+        case_sensitive=True,
     )
 
     # API Configuration
     API_V1_STR: str = "/api/v1"
     PROJECT_NAME: str = "PatternFly FastAPI Template"
+    APP_VERSION: str = _load_app_version_from_pyproject()
+    PORT: int = 8000
 
     # Security
     SECRET_KEY: str = secrets.token_urlsafe(32)
 
     # Environment
-    ENVIRONMENT: Literal["local", "staging", "production"] = "local"
+    ENVIRONMENT: Literal["local", "development", "staging", "production"] = "local"
 
     # Frontend Configuration
     FRONTEND_HOST: str = "http://localhost:8080"
@@ -54,12 +99,13 @@ class Settings(BaseSettings):
             self.FRONTEND_HOST
         ]
 
-    # Database Configuration
-    POSTGRES_SERVER: str
+    # Database Configuration (PostgreSQL)
+    # All fields have defaults for zero-config local development
+    POSTGRES_SERVER: str = "localhost"
     POSTGRES_PORT: int = 5432
-    POSTGRES_USER: str
-    POSTGRES_PASSWORD: str = ""
-    POSTGRES_DB: str = ""
+    POSTGRES_USER: str = "app"
+    POSTGRES_PASSWORD: str = "changethis"
+    POSTGRES_DB: str = "app"
 
     @computed_field  # type: ignore[prop-decorator]
     @property

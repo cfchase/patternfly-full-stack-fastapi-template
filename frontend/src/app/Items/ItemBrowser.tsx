@@ -38,68 +38,133 @@ import {
   ActionGroup,
   Flex,
   FlexItem,
+  Pagination,
 } from '@patternfly/react-core';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import SearchIcon from '@patternfly/react-icons/dist/esm/icons/search-icon';
 import { EditIcon, TrashIcon } from '@patternfly/react-icons';
-import { itemService, Item, ItemCreate, ItemUpdate } from '@app/services/itemService';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { itemService, ItemCreate, ItemUpdate } from '@app/services/itemService';
+import { graphqlClient } from '@app/graphql/client';
+import { ITEMS_QUERY } from '@app/graphql/queries';
+import { ItemsQueryResult, ItemType } from '@app/graphql/types';
 
 const ItemBrowser: React.FunctionComponent = () => {
-  const [items, setItems] = React.useState<Item[]>([]);
-  const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-  const [success, setSuccess] = React.useState<string | null>(null);
+  const queryClient = useQueryClient();
+
+  // Search and filter state
   const [searchValue, setSearchValue] = React.useState('');
+  const [debouncedSearchValue, setDebouncedSearchValue] = React.useState('');
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = React.useState(1);
+  const [pageSize, setPageSize] = React.useState(20);
+
+  // Sorting state
+  const [sortBy, setSortBy] = React.useState<string>('id');
+  const [sortOrder, setSortOrder] = React.useState<'asc' | 'desc'>('asc');
+
+  // Drawer state
   const [isDrawerExpanded, setIsDrawerExpanded] = React.useState(false);
-  const [selectedItemId, setSelectedItemId] = React.useState<string | null>(null);
+  const [selectedItemId, setSelectedItemId] = React.useState<number | null>(null);
 
   // Modal state
   const [isModalOpen, setIsModalOpen] = React.useState(false);
-  const [editingItem, setEditingItem] = React.useState<Item | null>(null);
+  const [editingItem, setEditingItem] = React.useState<ItemType | null>(null);
   const [formTitle, setFormTitle] = React.useState('');
   const [formDescription, setFormDescription] = React.useState('');
 
-  // Filter items based on search
-  const filteredItems = React.useMemo(() => {
-    if (!searchValue) return items;
-    const searchLower = searchValue.toLowerCase();
-    return items.filter(
-      (item) =>
-        item.title.toLowerCase().includes(searchLower) ||
-        item.id.toLowerCase().includes(searchLower) ||
-        (item.description && item.description.toLowerCase().includes(searchLower))
-    );
-  }, [searchValue, items]);
+  // Success message state
+  const [successMessage, setSuccessMessage] = React.useState<string | null>(null);
+
+  // Debounce search input (300ms delay)
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchValue(searchValue);
+      setCurrentPage(1); // Reset to first page when searching
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchValue]);
+
+  // Clear success message after 3 seconds
+  React.useEffect(() => {
+    if (successMessage) {
+      const timer = setTimeout(() => setSuccessMessage(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [successMessage]);
+
+  // Fetch items with GraphQL via React Query
+  const {
+    data: itemsData,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: [
+      'items',
+      {
+        search: debouncedSearchValue || undefined,
+        skip: (currentPage - 1) * pageSize,
+        limit: pageSize,
+        sortBy: sortBy,
+        sortOrder: sortOrder,
+      },
+    ],
+    queryFn: () =>
+      graphqlClient.request<ItemsQueryResult>(ITEMS_QUERY, {
+        search: debouncedSearchValue || undefined,
+        skip: (currentPage - 1) * pageSize,
+        limit: pageSize,
+        sortBy: sortBy,
+        sortOrder: sortOrder,
+      }),
+  });
+
+  const items: ItemType[] = itemsData?.items ?? [];
+  const totalCount = itemsData?.itemsCount ?? 0;
 
   const selectedItem = React.useMemo(
-    () => filteredItems.find((item) => item.id === selectedItemId),
-    [filteredItems, selectedItemId]
+    () => items.find((item) => item.id === selectedItemId),
+    [items, selectedItemId]
   );
 
   const selectedItemIndex = React.useMemo(
-    () => filteredItems.findIndex((item) => item.id === selectedItemId),
-    [filteredItems, selectedItemId]
+    () => items.findIndex((item) => item.id === selectedItemId),
+    [items, selectedItemId]
   );
 
-  const loadItems = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await itemService.getItems();
-      setItems(response.data);
-    } catch (err) {
-      setError('Failed to load items');
-      console.error('Error loading items:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Mutations
+  const createMutation = useMutation({
+    mutationFn: (newItem: ItemCreate) => itemService.createItem(newItem),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['items'] });
+      setSuccessMessage('Item created successfully');
+      handleCloseModal();
+    },
+  });
 
-  React.useEffect(() => {
-    loadItems();
-  }, []);
+  const updateMutation = useMutation({
+    mutationFn: ({ id, updates }: { id: number; updates: ItemUpdate }) =>
+      itemService.updateItem(id, updates),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['items'] });
+      setSuccessMessage('Item updated successfully');
+      handleCloseModal();
+    },
+  });
 
-  const handleRowClick = (itemId: string) => {
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => itemService.deleteItem(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['items'] });
+      setSuccessMessage('Item deleted successfully');
+      setIsDrawerExpanded(false);
+      setSelectedItemId(null);
+    },
+  });
+
+  const handleRowClick = (itemId: number) => {
     setSelectedItemId(itemId);
     setIsDrawerExpanded(true);
   };
@@ -108,28 +173,43 @@ const ItemBrowser: React.FunctionComponent = () => {
     setIsDrawerExpanded(false);
   };
 
+  const handleSearchChange = (_event: React.FormEvent<HTMLInputElement>, value: string) => {
+    setSearchValue(value);
+  };
+
+  const handleSearchClear = () => {
+    setSearchValue('');
+  };
+
+  // Sort handler
+  const handleSort = (_event: React.MouseEvent, column: string, direction: 'asc' | 'desc') => {
+    setSortBy(column);
+    setSortOrder(direction);
+    setCurrentPage(1); // Reset to page 1 when sort changes
+  };
+
   const handleFirstItem = () => {
-    if (filteredItems.length > 0) {
-      setSelectedItemId(filteredItems[0].id);
+    if (items.length > 0) {
+      setSelectedItemId(items[0].id);
       setIsDrawerExpanded(true);
     }
   };
 
   const handlePreviousItem = () => {
     if (selectedItemIndex > 0) {
-      setSelectedItemId(filteredItems[selectedItemIndex - 1].id);
+      setSelectedItemId(items[selectedItemIndex - 1].id);
     }
   };
 
   const handleNextItem = () => {
-    if (selectedItemIndex < filteredItems.length - 1) {
-      setSelectedItemId(filteredItems[selectedItemIndex + 1].id);
+    if (selectedItemIndex < items.length - 1) {
+      setSelectedItemId(items[selectedItemIndex + 1].id);
     }
   };
 
   const handleLastItem = () => {
-    if (filteredItems.length > 0) {
-      setSelectedItemId(filteredItems[filteredItems.length - 1].id);
+    if (items.length > 0) {
+      setSelectedItemId(items[items.length - 1].id);
       setIsDrawerExpanded(true);
     }
   };
@@ -141,7 +221,7 @@ const ItemBrowser: React.FunctionComponent = () => {
     setIsModalOpen(true);
   };
 
-  const handleOpenEditModal = (item: Item) => {
+  const handleOpenEditModal = (item: ItemType) => {
     setEditingItem(item);
     setFormTitle(item.title);
     setFormDescription(item.description || '');
@@ -157,52 +237,40 @@ const ItemBrowser: React.FunctionComponent = () => {
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    setError(null);
-    setSuccess(null);
 
-    try {
-      if (editingItem) {
-        // Update existing item
-        const updates: ItemUpdate = {
+    if (editingItem) {
+      updateMutation.mutate({
+        id: editingItem.id,
+        updates: {
           title: formTitle,
           description: formDescription || undefined,
-        };
-        await itemService.updateItem(editingItem.id, updates);
-        setSuccess('Item updated successfully');
-      } else {
-        // Create new item
-        const newItem: ItemCreate = {
-          title: formTitle,
-          description: formDescription || undefined,
-        };
-        await itemService.createItem(newItem);
-        setSuccess('Item created successfully');
-      }
-      handleCloseModal();
-      loadItems();
-    } catch (err) {
-      setError(`Failed to ${editingItem ? 'update' : 'create'} item`);
-      console.error('Error saving item:', err);
+        },
+      });
+    } else {
+      createMutation.mutate({
+        title: formTitle,
+        description: formDescription || undefined,
+      });
     }
   };
 
-  const handleDelete = async (item: Item) => {
+  const handleDelete = async (item: ItemType) => {
     if (!confirm(`Are you sure you want to delete "${item.title}"?`)) {
       return;
     }
-
-    setError(null);
-    setSuccess(null);
-
-    try {
-      await itemService.deleteItem(item.id);
-      setSuccess('Item deleted successfully');
-      loadItems();
-    } catch (err) {
-      setError('Failed to delete item');
-      console.error('Error deleting item:', err);
-    }
+    deleteMutation.mutate(item.id);
   };
+
+  // Column definitions for sorting
+  const columns = [
+    { key: 'id', label: 'ID', width: 10 as const },
+    { key: 'title', label: 'Title', width: 20 as const },
+    { key: 'description', label: 'Description', width: 35 as const },
+    { key: 'owner', label: 'Owner', width: 20 as const, sortable: false },
+    { key: 'actions', label: 'Actions', width: 15 as const, sortable: false },
+  ];
+
+  const mutationError = createMutation.error || updateMutation.error || deleteMutation.error;
 
   const panelContent = selectedItem && (
     <DrawerPanelContent widths={{ default: 'width_50' }}>
@@ -230,8 +298,10 @@ const ItemBrowser: React.FunctionComponent = () => {
                 <DescriptionListDescription>{selectedItem.id}</DescriptionListDescription>
               </DescriptionListGroup>
               <DescriptionListGroup>
-                <DescriptionListTerm>Owner ID</DescriptionListTerm>
-                <DescriptionListDescription>{selectedItem.owner_id}</DescriptionListDescription>
+                <DescriptionListTerm>Owner</DescriptionListTerm>
+                <DescriptionListDescription>
+                  {selectedItem.owner?.fullName || selectedItem.owner?.username || selectedItem.owner?.email || `User ${selectedItem.ownerId}`}
+                </DescriptionListDescription>
               </DescriptionListGroup>
             </DescriptionList>
           </StackItem>
@@ -281,14 +351,14 @@ const ItemBrowser: React.FunctionComponent = () => {
                   </FlexItem>
                   <FlexItem>
                     <Content component="p">
-                      Item {selectedItemIndex + 1} of {filteredItems.length}
+                      Item {selectedItemIndex + 1} of {items.length}
                     </Content>
                   </FlexItem>
                   <FlexItem>
                     <Button
                       variant="secondary"
                       onClick={handleNextItem}
-                      isDisabled={selectedItemIndex === filteredItems.length - 1}
+                      isDisabled={selectedItemIndex === items.length - 1}
                       size="sm"
                     >
                       Next
@@ -298,7 +368,7 @@ const ItemBrowser: React.FunctionComponent = () => {
                     <Button
                       variant="secondary"
                       onClick={handleLastItem}
-                      isDisabled={selectedItemIndex === filteredItems.length - 1}
+                      isDisabled={selectedItemIndex === items.length - 1}
                       size="sm"
                     >
                       Last
@@ -320,62 +390,102 @@ const ItemBrowser: React.FunctionComponent = () => {
           <ToolbarContent>
             <ToolbarItem>
               <SearchInput
-                placeholder="Search by title, ID, or description"
+                placeholder="Search by title or description"
                 value={searchValue}
-                onChange={(_event, value) => setSearchValue(value)}
-                onClear={() => setSearchValue('')}
+                onChange={handleSearchChange}
+                onClear={handleSearchClear}
                 style={{ width: '400px' }}
               />
-            </ToolbarItem>
-            <ToolbarItem>
-              <Content component="p">
-                {filteredItems.length} {filteredItems.length === 1 ? 'item' : 'items'}
-              </Content>
             </ToolbarItem>
             <ToolbarItem align={{ default: 'alignEnd' }}>
               <Button variant="primary" onClick={handleOpenCreateModal}>
                 Add Item
               </Button>
             </ToolbarItem>
+            <ToolbarItem variant="pagination">
+              <Pagination
+                itemCount={totalCount}
+                perPage={pageSize}
+                page={currentPage}
+                onSetPage={(_event, newPage) => setCurrentPage(newPage)}
+                onPerPageSelect={(_event, newSize) => {
+                  setPageSize(newSize);
+                  setCurrentPage(1);
+                }}
+                variant="top"
+                widgetId="items-pagination-top"
+                perPageOptions={[
+                  { title: '10', value: 10 },
+                  { title: '20', value: 20 },
+                  { title: '50', value: 50 },
+                  { title: '100', value: 100 },
+                ]}
+              />
+            </ToolbarItem>
           </ToolbarContent>
         </Toolbar>
       </StackItem>
       <StackItem>
-        {error && (
+        {(error || mutationError) && (
           <Alert variant={AlertVariant.danger} title="Error" isInline>
-            {error}
+            {error ? 'Failed to load items' : 'Operation failed'}
           </Alert>
         )}
-        {success && (
+        {successMessage && (
           <Alert variant={AlertVariant.success} title="Success" isInline>
-            {success}
+            {successMessage}
           </Alert>
         )}
       </StackItem>
       <StackItem>
-        {loading ? (
-          <div style={{ textAlign: 'center', marginTop: '40px' }}>
+        {isLoading ? (
+          <EmptyState>
             <Spinner size="xl" />
-          </div>
-        ) : filteredItems.length > 0 ? (
+          </EmptyState>
+        ) : items.length > 0 ? (
           <Table variant="compact">
             <Thead>
               <Tr>
-                <Th width={25}>Title</Th>
-                <Th width={60}>Description</Th>
-                <Th width={15}>Actions</Th>
+                {columns.map((col, index) => {
+                  if (col.sortable === false) {
+                    return (
+                      <Th key={col.key} width={col.width}>
+                        {col.label}
+                      </Th>
+                    );
+                  }
+                  const isSorted = sortBy === col.key;
+                  return (
+                    <Th
+                      key={col.key}
+                      width={col.width}
+                      sort={{
+                        sortBy: {
+                          index: isSorted ? index : undefined,
+                          direction: sortOrder,
+                        },
+                        onSort: (_event, _index, direction) => handleSort(_event, col.key, direction),
+                        columnIndex: index,
+                      }}
+                    >
+                      {col.label}
+                    </Th>
+                  );
+                })}
               </Tr>
             </Thead>
             <Tbody>
-              {filteredItems.map((item) => (
+              {items.map((item) => (
                 <Tr
                   key={item.id}
                   isClickable
                   isRowSelected={item.id === selectedItemId}
                   onRowClick={() => handleRowClick(item.id)}
                 >
+                  <Td dataLabel="ID">{item.id}</Td>
                   <Td dataLabel="Title">{item.title}</Td>
                   <Td dataLabel="Description">{item.description || <em>No description</em>}</Td>
+                  <Td dataLabel="Owner">{item.owner?.fullName || item.owner?.username || item.owner?.email || `User ${item.ownerId}`}</Td>
                   <Td dataLabel="Actions" isActionCell>
                     <Flex spaceItems={{ default: 'spaceItemsNone' }}>
                       <FlexItem>
@@ -406,7 +516,7 @@ const ItemBrowser: React.FunctionComponent = () => {
               ))}
             </Tbody>
           </Table>
-        ) : items.length === 0 && !searchValue ? (
+        ) : totalCount === 0 && !searchValue ? (
           <EmptyState>
             <Title headingLevel="h4" size="lg">
               No items yet
@@ -425,6 +535,28 @@ const ItemBrowser: React.FunctionComponent = () => {
           </EmptyState>
         )}
       </StackItem>
+      {items.length > 0 && (
+        <StackItem>
+          <Pagination
+            itemCount={totalCount}
+            perPage={pageSize}
+            page={currentPage}
+            onSetPage={(_event, newPage) => setCurrentPage(newPage)}
+            onPerPageSelect={(_event, newSize) => {
+              setPageSize(newSize);
+              setCurrentPage(1);
+            }}
+            variant="bottom"
+            widgetId="items-pagination-bottom"
+            perPageOptions={[
+              { title: '10', value: 10 },
+              { title: '20', value: 20 },
+              { title: '50', value: 50 },
+              { title: '100', value: 100 },
+            ]}
+          />
+        </StackItem>
+      )}
     </Stack>
   );
 
@@ -487,7 +619,14 @@ const ItemBrowser: React.FunctionComponent = () => {
           </Form>
         </ModalBody>
         <ModalFooter>
-          <Button key="submit" variant="primary" form="item-form" onClick={handleSubmit}>
+          <Button
+            key="submit"
+            variant="primary"
+            form="item-form"
+            onClick={handleSubmit}
+            isLoading={createMutation.isPending || updateMutation.isPending}
+            isDisabled={createMutation.isPending || updateMutation.isPending}
+          >
             {editingItem ? 'Update' : 'Create'}
           </Button>
           <Button key="cancel" variant="link" onClick={handleCloseModal}>

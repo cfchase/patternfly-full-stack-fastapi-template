@@ -17,6 +17,7 @@ export default defineConfig({
       ],
     },
     setupFiles: './src/setupTests.ts',
+    exclude: ['**/node_modules/**', '**/e2e/**'],
   },
   resolve: {
     alias: {

@@ -45,6 +45,9 @@ temp/
 *.pem
 secrets/
 
+# OAuth2-Proxy secrets (keep .example files, ignore actual secrets)
+k8s/overlays/*/oauth-proxy-secret.env
+
 # Local development overrides
 .local/
 

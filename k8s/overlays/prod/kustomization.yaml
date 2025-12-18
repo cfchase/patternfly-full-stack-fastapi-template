@@ -3,23 +3,38 @@ kind: Kustomization
 
 resources:
   - ../../base
+  # Production uses external managed database
+  # To use in-cluster postgres (not recommended for prod):
+  # - ../../postgres/database/in-cluster
 
 namespace: patternfly-fastapi-prod
 
-commonLabels:
-  environment: production
+labels:
+  - pairs:
+      environment: production
 
-patchesStrategicMerge:
-  - deployment-patch.yaml
+patches:
+  - path: deployment-patch.yaml
 
 replicas:
-  - name: backend
+  - name: app
     count: 3
-  - name: frontend
-    count: 2
+
+configMapGenerator:
+  - name: oauth-proxy-config
+    envs:
+      - oauth-proxy.env
+
+secretGenerator:
+  - name: oauth-proxy-secret
+    envs:
+      - oauth-proxy-secret.env
+
+generatorOptions:
+  disableNameSuffixHash: true
 
 images:
-  - name: quay.io/cfchase/patternfly-fastapi-backend
+  - name: quay.io/cfchase/pf-full-stack-fastapi-backend
     newTag: prod
-  - name: quay.io/cfchase/patternfly-fastapi-frontend
+  - name: quay.io/cfchase/pf-full-stack-fastapi-frontend
     newTag: prod

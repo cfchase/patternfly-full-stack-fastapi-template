@@ -1,5 +1,4 @@
 """Seed database with test data for development."""
-import uuid
 from sqlmodel import Session, select
 
 from app.core.db import engine
@@ -9,40 +8,46 @@ from app.models import User, Item
 def seed_test_data() -> None:
     """Create test users and items for development."""
     with Session(engine) as session:
-        # Create test users
+        # Create test users (simulating OAuth-created users)
         test_users = [
             User(
-                id=uuid.UUID("00000000-0000-0000-0000-000000000001"),
                 email="john.smith@example.com",
-                hashed_password="not_a_real_password_hash",
+                username="jsmith",
                 full_name="John Smith",
-                is_active=True,
-                is_superuser=False,
+                active=True,
+                admin=False,
             ),
             User(
-                id=uuid.UUID("00000000-0000-0000-0000-000000000002"),
                 email="sarah.johnson@example.com",
-                hashed_password="not_a_real_password_hash",
+                username="sjohnson",
                 full_name="Sarah Johnson",
-                is_active=True,
-                is_superuser=False,
+                active=True,
+                admin=False,
             ),
             User(
-                id=uuid.UUID("00000000-0000-0000-0000-000000000003"),
                 email="mike.chen@example.com",
-                hashed_password="not_a_real_password_hash",
+                username="mchen",
                 full_name="Mike Chen",
-                is_active=True,
-                is_superuser=True,
+                active=True,
+                admin=True,
             ),
         ]
 
         users_created = 0
+        user_ids = {}  # Map username to id for creating items
+
         for user in test_users:
-            existing_user = session.get(User, user.id)
+            # Check if user already exists by username
+            existing_user = session.exec(
+                select(User).where(User.username == user.username)
+            ).first()
             if not existing_user:
                 session.add(user)
+                session.flush()  # Get the id without committing
+                user_ids[user.username] = user.id
                 users_created += 1
+            else:
+                user_ids[user.username] = existing_user.id
 
         session.commit()
         print(f"✅ Created {users_created} test users")
@@ -52,42 +57,42 @@ def seed_test_data() -> None:
             Item(
                 title="Data Processing Pipeline",
                 description="Automated data processing pipeline for customer analytics. Handles ingestion, transformation, and storage of customer data.",
-                owner_id=uuid.UUID("00000000-0000-0000-0000-000000000001"),
+                owner_id=user_ids["jsmith"],
             ),
             Item(
                 title="User Authentication Service",
                 description="Centralized authentication service supporting OAuth 2.0, SAML, and multi-factor authentication.",
-                owner_id=uuid.UUID("00000000-0000-0000-0000-000000000002"),
+                owner_id=user_ids["sjohnson"],
             ),
             Item(
                 title="Notification Engine",
                 description="Real-time notification system supporting email, SMS, and push notifications.",
-                owner_id=uuid.UUID("00000000-0000-0000-0000-000000000003"),
+                owner_id=user_ids["mchen"],
             ),
             Item(
                 title="Analytics Dashboard",
                 description="Interactive dashboard for business intelligence and data visualization.",
-                owner_id=uuid.UUID("00000000-0000-0000-0000-000000000001"),
+                owner_id=user_ids["jsmith"],
             ),
             Item(
                 title="API Gateway",
                 description="Central API gateway for routing, rate limiting, and authentication of all API requests.",
-                owner_id=uuid.UUID("00000000-0000-0000-0000-000000000001"),
+                owner_id=user_ids["jsmith"],
             ),
             Item(
                 title="File Storage Service",
                 description="Distributed file storage service with encryption and redundancy.",
-                owner_id=uuid.UUID("00000000-0000-0000-0000-000000000002"),
+                owner_id=user_ids["sjohnson"],
             ),
             Item(
                 title="Machine Learning Model",
                 description="Customer churn prediction model using ensemble learning techniques.",
-                owner_id=uuid.UUID("00000000-0000-0000-0000-000000000003"),
+                owner_id=user_ids["mchen"],
             ),
             Item(
                 title="Backup System",
                 description="Automated backup system with incremental backups and disaster recovery capabilities.",
-                owner_id=uuid.UUID("00000000-0000-0000-0000-000000000002"),
+                owner_id=user_ids["sjohnson"],
             ),
         ]
 
