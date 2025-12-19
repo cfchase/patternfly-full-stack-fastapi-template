@@ -37,8 +37,8 @@ case "$1" in
     start)
         log_info "Starting PostgreSQL development database..."
 
-        # Check if container already exists
-        if $CONTAINER_TOOL ps -a | grep -q $CONTAINER_NAME; then
+        # Check if container already exists (exact match)
+        if $CONTAINER_TOOL ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
             log_warn "Container $CONTAINER_NAME already exists. Starting it..."
             $CONTAINER_TOOL start $CONTAINER_NAME
         else
@@ -111,9 +111,9 @@ case "$1" in
         ;;
 
     status)
-        if $CONTAINER_TOOL ps | grep -q $CONTAINER_NAME; then
+        if $CONTAINER_TOOL ps --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
             log_info "PostgreSQL is running"
-            $CONTAINER_TOOL ps | grep $CONTAINER_NAME
+            $CONTAINER_TOOL ps --filter "name=^${CONTAINER_NAME}$"
         else
             log_warn "PostgreSQL is not running"
             exit 1

@@ -6,7 +6,7 @@ TAG ?= latest
 CONTAINER_TOOL ?= docker
 
 
-.PHONY: help setup dev build build-prod test clean push push-prod deploy deploy-prod undeploy undeploy-prod kustomize kustomize-prod db-start db-stop db-reset db-shell db-logs db-status db-init db-seed db-migrate-cluster db-seed-cluster db-init-cluster
+.PHONY: help setup dev dev-2 build build-prod test clean push push-prod deploy deploy-prod undeploy undeploy-prod kustomize kustomize-prod db-start db-stop db-reset db-shell db-logs db-status db-init db-seed
 
 # Default target
 help: ## Show this help message
@@ -37,7 +37,17 @@ dev-frontend: ## Run frontend development server
 	cd frontend && npm run dev
 
 dev-backend: ## Run backend development server
-	cd backend && uv run uvicorn main:app --reload --host 0.0.0.0 --port 8000
+	cd backend && uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+dev-2: ## Run second instance for parallel development (frontend:8081, backend:8001)
+	@echo "Starting second development instance..."
+	npx concurrently "make dev-backend-2" "make dev-frontend-2"
+
+dev-frontend-2: ## Run second frontend instance (port 8081)
+	cd frontend && VITE_PORT=8081 VITE_BACKEND_PORT=8001 npm run dev -- --port 8081
+
+dev-backend-2: ## Run second backend instance (port 8001)
+	cd backend && uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8001
 
 # Database Management
 db-start: ## Start PostgreSQL development database
@@ -63,6 +73,25 @@ db-init: ## Initialize database schema with Alembic migrations
 	@echo "Running database migrations..."
 	@cd backend && POSTGRES_SERVER=localhost POSTGRES_USER=app POSTGRES_PASSWORD=changethis POSTGRES_DB=app uv run alembic upgrade head
 	@echo "Database initialized!"
+
+db-migrate-create: ## Create a new Alembic migration (usage: make db-migrate-create MSG="description")
+	@if [ -z "$(MSG)" ]; then echo "Error: MSG is required. Usage: make db-migrate-create MSG=\"description\""; exit 1; fi
+	@cd backend && POSTGRES_SERVER=localhost POSTGRES_USER=app POSTGRES_PASSWORD=changethis POSTGRES_DB=app uv run alembic revision --autogenerate -m "$(MSG)"
+	@echo "Migration created! Review the file in backend/alembic/versions/"
+
+db-migrate-upgrade: ## Apply all pending migrations
+	@echo "Applying migrations..."
+	@cd backend && POSTGRES_SERVER=localhost POSTGRES_USER=app POSTGRES_PASSWORD=changethis POSTGRES_DB=app uv run alembic upgrade head
+
+db-migrate-downgrade: ## Rollback one migration
+	@echo "Rolling back one migration..."
+	@cd backend && POSTGRES_SERVER=localhost POSTGRES_USER=app POSTGRES_PASSWORD=changethis POSTGRES_DB=app uv run alembic downgrade -1
+
+db-migrate-history: ## Show migration history
+	@cd backend && POSTGRES_SERVER=localhost POSTGRES_USER=app POSTGRES_PASSWORD=changethis POSTGRES_DB=app uv run alembic history
+
+db-migrate-current: ## Show current migration revision
+	@cd backend && POSTGRES_SERVER=localhost POSTGRES_USER=app POSTGRES_PASSWORD=changethis POSTGRES_DB=app uv run alembic current
 
 db-seed: ## Seed database with test data (users and items)
 	@echo "Seeding database with test data..."
@@ -147,36 +176,23 @@ undeploy-prod: ## Remove production deployment
 	@echo "Removing production deployment..."
 	./scripts/undeploy.sh prod
 
-db-migrate-cluster: ## Run database migrations in the cluster
-	@echo "Running database migrations in cluster..."
-	@command -v oc >/dev/null 2>&1 && oc apply -f k8s/base/db-migration-job.yaml || kubectl apply -f k8s/base/db-migration-job.yaml
-	@echo "Waiting for migration job to complete..."
-	@command -v oc >/dev/null 2>&1 && oc wait --for=condition=complete --timeout=120s job/db-migration || kubectl wait --for=condition=complete --timeout=120s job/db-migration || true
-	@echo "Migration job logs:"
-	@command -v oc >/dev/null 2>&1 && oc logs job/db-migration || kubectl logs job/db-migration
-	@echo "To re-run migrations, first delete the job: oc delete job db-migration"
-
-db-seed-cluster: ## Seed database with test data in the cluster
-	@echo "Seeding database with test data in cluster..."
-	@command -v oc >/dev/null 2>&1 && oc apply -f k8s/base/db-seed-job.yaml || kubectl apply -f k8s/base/db-seed-job.yaml
-	@echo "Waiting for seed job to complete..."
-	@command -v oc >/dev/null 2>&1 && oc wait --for=condition=complete --timeout=120s job/db-seed || kubectl wait --for=condition=complete --timeout=120s job/db-seed || true
-	@echo "Seed job logs:"
-	@command -v oc >/dev/null 2>&1 && oc logs job/db-seed || kubectl logs job/db-seed
-	@echo "To re-run seeding, first delete the job: oc delete job db-seed"
-
-db-init-cluster: ## Run migrations and seed data in the cluster
-	@echo "Initializing database (migrations + seed data)..."
-	@$(MAKE) db-migrate-cluster
-	@echo ""
-	@$(MAKE) db-seed-cluster
-
 # Environment Setup
 env-setup: ## Copy environment example files
 	@echo "Setting up environment files..."
 	@if [ ! -f .env ]; then cp .env.example .env; echo "Created .env (root)"; fi
 	@if [ ! -f backend/.env ]; then cp backend/.env.example backend/.env; echo "Created backend/.env"; fi
 	@if [ ! -f frontend/.env ]; then cp frontend/.env.example frontend/.env; echo "Created frontend/.env"; fi
+
+# Version Management
+sync-version: ## Sync VERSION to pyproject.toml and package.json
+	@./scripts/sync-version.sh
+
+bump-version: ## Bump version (usage: make bump-version TYPE=patch|minor|major)
+	@if [ -z "$(TYPE)" ]; then echo "Error: TYPE is required. Usage: make bump-version TYPE=patch|minor|major"; exit 1; fi
+	@./scripts/bump-version.sh $(TYPE)
+
+show-version: ## Show current version
+	@cat VERSION
 
 # Health Checks
 health-backend: ## Check backend health

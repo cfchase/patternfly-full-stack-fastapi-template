@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "patternfly-fastapi-template-backend"
-version = "1.0.0"
+version = "0.1.0"
 description = "FastAPI backend for PatternFly FastAPI Template"
 authors = [
     {name = "PatternFly FastAPI Template Team"},
@@ -31,6 +31,9 @@ dependencies = [
     "psycopg[binary]<4.0.0,>=3.1.13",
     "tenacity<9.0.0,>=8.2.3",
     "email-validator<3.0.0.0,>=2.1.0.post1",
+    # GraphQL
+    "strawberry-graphql[fastapi]>=0.245.0",
+    "sqladmin>=0.22.0",
 ]
 
 [project.optional-dependencies]
@@ -72,3 +75,10 @@ exclude_lines = [
 
 [tool.hatch.build.targets.wheel]
 packages = ["app"]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "pytest>=8.4.1",
+    "pytest-asyncio>=1.0.0",
+]

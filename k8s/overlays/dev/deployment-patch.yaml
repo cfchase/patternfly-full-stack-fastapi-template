@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: backend
+  name: app
 spec:
   template:
     spec:
@@ -17,15 +17,6 @@ spec:
           limits:
             memory: "256Mi"
             cpu: "200m"
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: frontend
-spec:
-  template:
-    spec:
-      containers:
       - name: frontend
         resources:
           requests:
@@ -34,3 +25,11 @@ spec:
           limits:
             memory: "128Mi"
             cpu: "100m"
+      - name: oauth-proxy
+        resources:
+          requests:
+            memory: "32Mi"
+            cpu: "25m"
+          limits:
+            memory: "64Mi"
+            cpu: "50m"

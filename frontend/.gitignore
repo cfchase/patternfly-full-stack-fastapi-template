@@ -20,9 +20,8 @@ yarn-error.log*
 lerna-debug.log*
 .pnpm-debug.log*
 
-# Lock files (optional - some teams prefer to commit these)
-package-lock.json
-yarn.lock
+# Lock files - package-lock.json SHOULD be committed for reproducible builds
+# yarn.lock
 
 # Runtime data
 pids
