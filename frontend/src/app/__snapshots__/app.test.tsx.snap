@@ -202,9 +202,7 @@ exports[`App tests > should render default App component 1`] = `
             hidden=""
           >
             <div
-              aria-hidden="true"
-              class="pf-v6-c-toolbar__group pf-m-hidden"
-              hidden=""
+              class="pf-v6-c-toolbar__group"
             />
           </div>
         </div>
