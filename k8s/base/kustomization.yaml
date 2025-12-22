@@ -15,7 +15,7 @@ labels:
       app.kubernetes.io/version: "1.0.0"
 
 images:
-  - name: quay.io/cfchase/pf-full-stack-fastapi-backend
+  - name: quay.io/myorg/my-app-backend
     newTag: latest
-  - name: quay.io/cfchase/pf-full-stack-fastapi-frontend
+  - name: quay.io/myorg/my-app-frontend
     newTag: latest

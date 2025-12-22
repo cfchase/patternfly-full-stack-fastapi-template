@@ -2,6 +2,32 @@
 
 A production-ready full-stack application template with React frontend (Vite + PatternFly UI) and FastAPI backend, featuring PostgreSQL database, comprehensive testing, and OpenShift deployment.
 
+## Using This Template
+
+**Creating a new project from this template?** Follow these steps:
+
+1. **Create your repository** from this template (GitHub's "Use this template" button or fork)
+
+2. **Clone and run setup**:
+   ```bash
+   git clone https://github.com/your-org/your-project
+   cd your-project
+   make setup
+   ```
+
+   The setup wizard will prompt you for:
+   - **Project name**: Used for container image names (e.g., `my-app` → `my-app-backend`, `my-app-frontend`)
+   - **Container registry**: Your registry URL (e.g., `quay.io/myorg`, `docker.io/myuser`)
+   - **Namespace prefix**: Kubernetes namespace prefix (defaults to project name)
+
+3. **Commit your configuration**:
+   ```bash
+   git add project.env k8s/
+   git commit -m "Configure project for my-app"
+   ```
+
+That's it! Your project is now configured with your own image names and namespaces.
+
 ## Features
 
 - **Frontend**: React with TypeScript, Vite, and PatternFly UI components
@@ -44,28 +70,24 @@ A production-ready full-stack application template with React frontend (Vite + P
 - Python 3.11+
 - UV (Python package manager) - `pip install uv`
 - Docker or Podman
-- OpenShift CLI (`oc`) or kubectl
-- Kustomize
+- OpenShift CLI (`oc`) or kubectl (for deployment)
+- Kustomize (for deployment)
 
 ### Local Development
 
-1. **Clone and install dependencies**:
+1. **Setup** (installs dependencies, configures project, creates .env files):
    ```bash
-   git clone https://github.com/cfchase/patternfly-full-stack-fastapi-template
-   cd patternfly-full-stack-fastapi-template
    make setup
    ```
 
-2. **Start PostgreSQL database**:
+2. **Start database and seed test data**:
    ```bash
-   make db-start    # Start PostgreSQL container
-   make db-init     # Run Alembic migrations
-   make db-seed     # Populate with test data (optional)
+   make db-start && make db-init && make db-seed
    ```
 
 3. **Run development servers**:
    ```bash
-   make dev         # Run both frontend and backend
+   make dev
    ```
 
    Access the application:
@@ -416,12 +438,9 @@ make test-e2e-headed    # Run with visible browser
 
 ### Initial Setup
 ```bash
-make setup           # Install dependencies
-make db-start        # Start PostgreSQL
-make db-init         # Run migrations
-make db-seed         # Add test data (optional)
-make env-setup       # Create .env files
-make dev             # Start development servers
+make setup                                 # Install deps, configure project, create .env files
+make db-start && make db-init && make db-seed  # Start database with test data
+make dev                                   # Start development servers
 ```
 
 ### Daily Development
@@ -481,19 +500,26 @@ make db-init-cluster
 
 ## Customization
 
-### Update Container Registry
-1. Update `REGISTRY` in Makefile (default: `quay.io/cfchase`)
-2. Update image references in `k8s/base/kustomization.yaml`
-3. Update references in overlay files
+### Project Configuration
 
-### Update Application Name
-1. Update `PROJECT_NAME` in `backend/app/core/config.py`
-2. Update page titles in `frontend/src/app/routeConfig.tsx`
-3. Update README and documentation
+Project identity is stored in `project.env` (tracked in git):
+
+```bash
+PROJECT_NAME=my-app
+REGISTRY=quay.io/myorg
+NAMESPACE_PREFIX=my-app
+```
+
+**To reconfigure your project:**
+```bash
+./scripts/setup-project.sh      # Interactive setup
+# or manually edit project.env, then:
+./scripts/update-k8s-images.sh  # Update k8s manifests
+```
 
 ### Update Database Credentials
 1. Update `backend/.env` for local development
-2. Update `k8s/base/postgres-secret.yaml` for cluster deployment
+2. Update `k8s/postgres/database/in-cluster/postgres-secret.yaml` for cluster deployment
 3. Ensure secrets are not committed to git
 
 ## Health Checks

@@ -15,9 +15,9 @@ PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
 # Default values (can be overridden by args, env vars, or project.env)
 TAG=${1:-${TAG:-latest}}
-REGISTRY=${2:-${REGISTRY:-quay.io/cfchase}}
+REGISTRY=${2:-${REGISTRY:-quay.io/myorg}}
 CONTAINER_TOOL=${3:-${CONTAINER_TOOL:-docker}}
-PROJECT_NAME=${PROJECT_NAME:-pf-full-stack-fastapi}
+PROJECT_NAME=${PROJECT_NAME:-my-app}
 
 # Validate container tool
 if [[ "$CONTAINER_TOOL" != "podman" && "$CONTAINER_TOOL" != "docker" ]]; then

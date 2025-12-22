@@ -4,8 +4,8 @@
 -include project.env
 
 # Container Registry Operations
-PROJECT_NAME ?= pf-full-stack-fastapi
-REGISTRY ?= quay.io/cfchase
+PROJECT_NAME ?= my-app
+REGISTRY ?= quay.io/myorg
 NAMESPACE_PREFIX ?= $(PROJECT_NAME)
 TAG ?= latest
 
@@ -22,12 +22,43 @@ help: ## Show this help message
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
 # Setup and Installation
-setup: ## Install all dependencies
+setup: ## Complete project setup (config, dependencies, env files)
+	@echo ""
+	@echo "=== Project Setup ==="
+	@echo ""
+	@if [ ! -f project.env ]; then \
+		echo "No project.env found. Running project configuration..."; \
+		echo ""; \
+		./scripts/setup-project.sh; \
+	else \
+		echo "project.env found - skipping project configuration"; \
+	fi
+	@echo ""
 	@echo "Installing frontend dependencies..."
 	cd frontend && npm install
 	@echo "Installing backend dependencies (including dev dependencies)..."
 	cd backend && uv sync --extra dev
-	@echo "Setup complete!"
+	@echo ""
+	@echo "Setting up environment files..."
+	@if [ ! -f backend/.env ]; then \
+		cp backend/.env.example backend/.env; \
+		echo "Created backend/.env"; \
+	else \
+		echo "backend/.env already exists"; \
+	fi
+	@if [ ! -f frontend/.env ]; then \
+		cp frontend/.env.example frontend/.env; \
+		echo "Created frontend/.env"; \
+	else \
+		echo "frontend/.env already exists"; \
+	fi
+	@echo ""
+	@echo "=== Setup complete! ==="
+	@echo ""
+	@echo "Next steps:"
+	@echo "  make db-start && make db-init && make db-seed   # Start and seed database"
+	@echo "  make dev                                         # Start development servers"
+	@echo ""
 
 setup-frontend: ## Install frontend dependencies only
 	cd frontend && npm install

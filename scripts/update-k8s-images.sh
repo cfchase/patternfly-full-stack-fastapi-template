@@ -39,10 +39,10 @@ fi
 # Source configuration
 source "$PROJECT_ROOT/project.env"
 
-# Default values (what we're replacing FROM)
-OLD_REGISTRY="quay.io/cfchase"
-OLD_PROJECT="pf-full-stack-fastapi"
-OLD_NAMESPACE_PREFIX="patternfly-fastapi"
+# Default values (what we're replacing FROM - template defaults)
+OLD_REGISTRY="quay.io/myorg"
+OLD_PROJECT="my-app"
+OLD_NAMESPACE_PREFIX="my-app"
 OLD_APP_LABEL="patternfly-fastapi-template"
 
 # New values (what we're replacing TO)

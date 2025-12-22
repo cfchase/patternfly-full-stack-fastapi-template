@@ -11,8 +11,8 @@ on:
 
 # Default values - can be overridden by project.env
 env:
-  DEFAULT_REGISTRY: quay.io/cfchase
-  DEFAULT_PROJECT_NAME: pf-full-stack-fastapi
+  DEFAULT_REGISTRY: quay.io/myorg
+  DEFAULT_PROJECT_NAME: my-app
 
 jobs:
   # Validate that VERSION, pyproject.toml, uv.lock, and package.json are in sync
