@@ -86,23 +86,17 @@ jobs:
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Install frontend dependencies
-        run: cd frontend && npm ci
+      - name: Install dependencies
+        run: make setup
 
-      - name: Install backend dependencies
-        run: cd backend && uv sync
-
-      - name: Run frontend tests
-        run: cd frontend && npm run test
-
-      - name: Run backend tests
+      - name: Run tests
         env:
           POSTGRES_SERVER: localhost
           POSTGRES_PORT: "5432"
           POSTGRES_USER: app
           POSTGRES_PASSWORD: changethis
           POSTGRES_DB: app
-        run: cd backend && uv run pytest
+        run: make test
 
   # Build and push container images (only on main branch push)
   build:
@@ -124,11 +118,8 @@ jobs:
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Install frontend dependencies
-        run: cd frontend && npm ci
-
-      - name: Build frontend
-        run: cd frontend && npm run build
+      - name: Install frontend and build
+        run: make setup-frontend && make build-frontend
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -184,11 +175,8 @@ jobs:
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Install frontend dependencies
-        run: cd frontend && npm ci
-
-      - name: Build frontend
-        run: cd frontend && npm run build
+      - name: Install frontend and build
+        run: make setup-frontend && make build-frontend
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3

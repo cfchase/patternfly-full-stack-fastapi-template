@@ -35,8 +35,21 @@ export default [
         'warn',
         { allowConstantExport: true }
       ],
-      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_'  // Ignore variables starting with _ (destructuring pattern)
+        }
+      ],
       'no-undef': 'off'
+    }
+  },
+  {
+    // Allow Context files to export both components and hooks
+    files: ['src/**/*Context.{ts,tsx}', 'src/**/contexts/*.{ts,tsx}'],
+    rules: {
+      'react-refresh/only-export-components': 'off'
     }
   },
   {
