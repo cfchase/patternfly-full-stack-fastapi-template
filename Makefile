@@ -8,7 +8,7 @@ TAG ?= latest
 CONTAINER_TOOL ?= $(shell if podman info >/dev/null 2>&1; then echo podman; elif docker info >/dev/null 2>&1; then echo docker; else echo docker; fi)
 
 
-.PHONY: help setup dev dev-2 build build-prod test test-frontend test-backend test-backend-verbose test-backend-coverage test-e2e test-e2e-ui test-e2e-headed update-tests lint clean push push-prod deploy deploy-prod undeploy undeploy-prod kustomize kustomize-prod db-start db-stop db-reset db-shell db-logs db-status db-init db-seed
+.PHONY: help setup dev dev-2 build build-prod test test-frontend test-backend test-e2e test-e2e-ui test-e2e-headed update-tests lint clean push push-prod deploy deploy-prod undeploy undeploy-prod kustomize kustomize-prod db-start db-stop db-reset db-shell db-logs db-status db-init db-seed
 
 # Default target
 help: ## Show this help message
@@ -130,12 +130,6 @@ test-backend: ## Run backend tests (use VERBOSE=1, COVERAGE=1, FILE=path as need
 	if [ "$(COVERAGE)" = "1" ]; then PYTEST_ARGS="$$PYTEST_ARGS --cov=app --cov-report=term-missing"; fi; \
 	if [ -n "$(FILE)" ]; then PYTEST_ARGS="$$PYTEST_ARGS $(FILE)"; fi; \
 	cd backend && uv run pytest $$PYTEST_ARGS
-
-test-backend-verbose: ## Run backend tests with verbose output
-	$(MAKE) test-backend VERBOSE=1
-
-test-backend-coverage: ## Run backend tests with coverage
-	$(MAKE) test-backend COVERAGE=1
 
 test-e2e: ## Run end-to-end tests with Playwright
 	@echo "Running E2E tests..."

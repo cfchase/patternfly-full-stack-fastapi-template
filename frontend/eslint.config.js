@@ -47,7 +47,7 @@ export default [
   },
   {
     // Allow Context files to export both components and hooks
-    files: ['**/*Context.{ts,tsx}', '**/contexts/*.{ts,tsx}'],
+    files: ['src/**/*Context.{ts,tsx}', 'src/**/contexts/*.{ts,tsx}'],
     rules: {
       'react-refresh/only-export-components': 'off'
     }
