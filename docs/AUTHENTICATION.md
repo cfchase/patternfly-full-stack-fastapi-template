@@ -5,29 +5,40 @@ This application uses OAuth2 Proxy for authentication, enabling integration with
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                        OpenShift Route                          │
-└─────────────────────────────────────────────────────────────────┘
-                                │
-                                ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                      Frontend (Nginx)                            │
-│  Serves React app, proxies /api/* to backend service            │
-└─────────────────────────────────────────────────────────────────┘
-                                │
-                                ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                     Backend Pod                                  │
-│  ┌──────────────────┐    ┌─────────────────────────────────┐    │
-│  │  OAuth2 Proxy    │───▶│  FastAPI Backend                │    │
-│  │  (Port 4180)     │    │  (Port 8000)                    │    │
-│  │                  │    │                                 │    │
-│  │  - Auth check    │    │  Reads X-Forwarded-User headers │    │
-│  │  - Login flow    │    │  Auto-creates users             │    │
-│  │  - Pass headers  │    │                                 │    │
-│  └──────────────────┘    └─────────────────────────────────┘    │
-└─────────────────────────────────────────────────────────────────┘
+                    ┌─────────────────────┐
+                    │   OpenShift Route   │
+                    │  (External Access)  │
+                    └──────────┬──────────┘
+                               │
+                               ▼
+┌──────────────────────────────────────────────────────────────────┐
+│                           App Pod                                 │
+│  ┌────────────────┐                                              │
+│  │  OAuth2 Proxy  │◄── All external requests enter here         │
+│  │  (Port 4180)   │                                              │
+│  │                │    - Authenticates users                     │
+│  │  ENTRY POINT   │    - Sets X-Forwarded-User headers           │
+│  └───────┬────────┘    - Redirects to OAuth provider             │
+│          │                                                        │
+│          ▼                                                        │
+│  ┌────────────────┐                                              │
+│  │    Frontend    │    - Serves React static files               │
+│  │  (Port 8080)   │    - Proxies /api/* to backend               │
+│  │  Nginx Proxy   │                                              │
+│  └───────┬────────┘                                              │
+│          │                                                        │
+│          ▼                                                        │
+│  ┌────────────────┐                                              │
+│  │    Backend     │    - Reads X-Forwarded-User headers          │
+│  │  (Port 8000)   │    - Auto-creates users on first login       │
+│  │                │    - Trusts headers (internal only)          │
+│  │ INTERNAL ONLY  │◄── NOT directly accessible from outside     │
+│  └────────────────┘                                              │
+└──────────────────────────────────────────────────────────────────┘
 ```
+
+**SECURITY NOTE:** The backend trusts `X-Forwarded-*` headers because it is only
+accessible through the OAuth2 Proxy. Never expose the backend directly to external traffic.
 
 ## How It Works
 

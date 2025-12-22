@@ -1,3 +1,20 @@
+"""
+Dependency injection for FastAPI routes.
+
+SECURITY WARNING:
+This module trusts X-Forwarded-* headers for user identity.
+The backend MUST be deployed behind an OAuth2-proxy with proper
+network isolation. Direct access to the backend from untrusted
+networks would allow header spoofing and user impersonation.
+
+Required deployment architecture:
+- OAuth2-proxy handles all authentication
+- Backend is only accessible from OAuth2-proxy (not public)
+- Use NetworkPolicy or service mesh to enforce this
+
+See docs/AUTHENTICATION.md for deployment details.
+"""
+
 from collections.abc import Generator
 from typing import Annotated
 

@@ -17,32 +17,54 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isLoadingHealthCheck, setIsLoadingHealthCheck] = React.useState(true);
 
   React.useEffect(() => {
+    // AbortController to prevent state updates on unmounted component
+    const abortController = new AbortController();
+    let isMounted = true;
+
     const fetchCurrentUser = async () => {
       try {
         const userData = await userService.getCurrentUser();
-        setCurrentUser(userData);
+        if (isMounted) {
+          setCurrentUser(userData);
+        }
       } catch (error) {
-        console.error('Failed to fetch current user:', error);
-        setCurrentUser(null);
+        if (isMounted && !abortController.signal.aborted) {
+          console.error('Failed to fetch current user:', error);
+          setCurrentUser(null);
+        }
       } finally {
-        setIsLoadingUser(false);
+        if (isMounted) {
+          setIsLoadingUser(false);
+        }
       }
     };
 
     const fetchHealthCheck = async () => {
       try {
         const healthData = await userService.getHealthCheck();
-        setHealthCheck(healthData);
+        if (isMounted) {
+          setHealthCheck(healthData);
+        }
       } catch (error) {
-        console.error('Failed to fetch health check:', error);
-        setHealthCheck(null);
+        if (isMounted && !abortController.signal.aborted) {
+          console.error('Failed to fetch health check:', error);
+          setHealthCheck(null);
+        }
       } finally {
-        setIsLoadingHealthCheck(false);
+        if (isMounted) {
+          setIsLoadingHealthCheck(false);
+        }
       }
     };
 
     fetchCurrentUser();
     fetchHealthCheck();
+
+    // Cleanup function to prevent state updates after unmount
+    return () => {
+      isMounted = false;
+      abortController.abort();
+    };
   }, []);
 
   return (

@@ -324,6 +324,29 @@ The deployment includes:
 - **Jobs**: Database migration and seeding jobs
 - **Secret**: Database credentials
 
+### CI/CD GitHub Secrets
+
+The GitHub Actions workflow requires the following secrets for building and pushing container images:
+
+| Secret | Description |
+|--------|-------------|
+| `QUAY_USERNAME` | Quay.io username or robot account name |
+| `QUAY_PASSWORD` | Quay.io password or robot account token |
+
+**Setup Instructions:**
+
+1. **Create a Quay.io robot account** (recommended):
+   - Go to your Quay.io organization → Robot Accounts
+   - Create a new robot account with write permissions to your repositories
+   - Copy the robot name and token
+
+2. **Add secrets to GitHub**:
+   - Go to your GitHub repository → Settings → Secrets and variables → Actions
+   - Add `QUAY_USERNAME` (e.g., `myorg+robot_name`)
+   - Add `QUAY_PASSWORD` (the robot account token)
+
+**Note**: Without these secrets, the CI will run tests but skip the image build/push step.
+
 ## Configuration
 
 ### Backend Environment Variables
