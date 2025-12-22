@@ -1,20 +1,25 @@
 # React FastAPI Template Makefile
 
+# Load project configuration if exists
+-include project.env
+
 # Container Registry Operations
+PROJECT_NAME ?= pf-full-stack-fastapi
 REGISTRY ?= quay.io/cfchase
+NAMESPACE_PREFIX ?= $(PROJECT_NAME)
 TAG ?= latest
 
 # Auto-detect container tool (check which daemon is actually running, podman preferred)
 CONTAINER_TOOL ?= $(shell if podman info >/dev/null 2>&1; then echo podman; elif docker info >/dev/null 2>&1; then echo docker; else echo docker; fi)
 
 
-.PHONY: help setup dev dev-2 build build-prod test test-frontend test-backend test-e2e test-e2e-ui test-e2e-headed update-tests lint clean push push-prod deploy deploy-prod undeploy undeploy-prod kustomize kustomize-prod db-start db-stop db-reset db-shell db-logs db-status db-init db-seed
+.PHONY: help setup setup-project update-k8s-images dev dev-2 build build-prod test test-frontend test-backend test-e2e test-e2e-ui test-e2e-headed update-tests lint clean push push-prod deploy deploy-prod undeploy undeploy-prod kustomize kustomize-prod db-start db-stop db-reset db-shell db-logs db-status db-init db-seed
 
 # Default target
 help: ## Show this help message
 	@echo "React FastAPI Template - Available commands:"
 	@echo ""
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
+	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
 # Setup and Installation
 setup: ## Install all dependencies
@@ -180,11 +185,22 @@ undeploy-prod: ## Remove production deployment
 	@echo "Removing production deployment..."
 	./scripts/undeploy.sh prod
 
+# Project Setup
+setup-project: ## Interactive project configuration (name, registry, namespace)
+	@chmod +x scripts/setup-project.sh
+	@./scripts/setup-project.sh
+
+update-k8s-images: ## Update Kubernetes manifests with project.env values
+	@chmod +x scripts/update-k8s-images.sh
+	@./scripts/update-k8s-images.sh
+
 # Environment Setup
 env-setup: ## Copy environment example files
 	@echo "Setting up environment files..."
-	@if [ ! -f .env ]; then cp .env.example .env; echo "Created .env (root)"; fi
-	@if [ ! -f backend/.env ]; then cp backend/.env.example backend/.env; echo "Created backend/.env"; fi
+	@if [ ! -f backend/.env ]; then \
+		cp backend/.env.example backend/.env; \
+		echo "Created backend/.env"; \
+	fi
 	@if [ ! -f frontend/.env ]; then cp frontend/.env.example frontend/.env; echo "Created frontend/.env"; fi
 
 # Version Management

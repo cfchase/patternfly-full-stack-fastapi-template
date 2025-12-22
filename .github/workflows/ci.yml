@@ -9,10 +9,10 @@ on:
   release:
     types: [published]
 
+# Default values - can be overridden by project.env
 env:
-  REGISTRY: quay.io/cfchase
-  BACKEND_IMAGE: pf-full-stack-fastapi-backend
-  FRONTEND_IMAGE: pf-full-stack-fastapi-frontend
+  DEFAULT_REGISTRY: quay.io/cfchase
+  DEFAULT_PROJECT_NAME: pf-full-stack-fastapi
 
 jobs:
   # Validate that VERSION, pyproject.toml, uv.lock, and package.json are in sync
@@ -111,6 +111,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Load project configuration
+        id: config
+        run: |
+          # Source project.env if it exists
+          if [ -f project.env ]; then
+            source project.env
+          fi
+          # Use project.env values or fall back to defaults
+          echo "registry=${REGISTRY:-$DEFAULT_REGISTRY}" >> $GITHUB_OUTPUT
+          echo "project_name=${PROJECT_NAME:-$DEFAULT_PROJECT_NAME}" >> $GITHUB_OUTPUT
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -143,8 +154,8 @@ jobs:
           context: ./backend
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:${{ steps.meta.outputs.sha_short }}
-            ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:latest
+            ${{ steps.config.outputs.registry }}/${{ steps.config.outputs.project_name }}-backend:${{ steps.meta.outputs.sha_short }}
+            ${{ steps.config.outputs.registry }}/${{ steps.config.outputs.project_name }}-backend:latest
 
       - name: Build and push frontend image
         uses: docker/build-push-action@v5
@@ -152,8 +163,8 @@ jobs:
           context: ./frontend
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:${{ steps.meta.outputs.sha_short }}
-            ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:latest
+            ${{ steps.config.outputs.registry }}/${{ steps.config.outputs.project_name }}-frontend:${{ steps.meta.outputs.sha_short }}
+            ${{ steps.config.outputs.registry }}/${{ steps.config.outputs.project_name }}-frontend:latest
 
   # Create release (on tag push)
   release:
@@ -167,6 +178,17 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Load project configuration
+        id: config
+        run: |
+          # Source project.env if it exists
+          if [ -f project.env ]; then
+            source project.env
+          fi
+          # Use project.env values or fall back to defaults
+          echo "registry=${REGISTRY:-$DEFAULT_REGISTRY}" >> $GITHUB_OUTPUT
+          echo "project_name=${PROJECT_NAME:-$DEFAULT_PROJECT_NAME}" >> $GITHUB_OUTPUT
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -201,8 +223,8 @@ jobs:
           context: ./backend
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:${{ steps.release.outputs.version }}
-            ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:prod
+            ${{ steps.config.outputs.registry }}/${{ steps.config.outputs.project_name }}-backend:${{ steps.release.outputs.version }}
+            ${{ steps.config.outputs.registry }}/${{ steps.config.outputs.project_name }}-backend:prod
 
       - name: Build and push frontend image (release)
         uses: docker/build-push-action@v5
@@ -210,5 +232,5 @@ jobs:
           context: ./frontend
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:${{ steps.release.outputs.version }}
-            ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:prod
+            ${{ steps.config.outputs.registry }}/${{ steps.config.outputs.project_name }}-frontend:${{ steps.release.outputs.version }}
+            ${{ steps.config.outputs.registry }}/${{ steps.config.outputs.project_name }}-frontend:prod

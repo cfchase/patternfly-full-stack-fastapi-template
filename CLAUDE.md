@@ -13,9 +13,17 @@ This is a PatternFly FastAPI template for building full-stack applications with 
 
 ## Quick Decision Guide
 
+**Creating a new project from this template?**
+```bash
+./scripts/setup-project.sh   # Interactive: prompts for project name, registry
+# OR manually:
+cp project.env.example project.env && vim project.env
+./scripts/update-k8s-images.sh
+```
+
 **New to the project?**
 ```bash
-make setup && make db-start && make db-init && make db-seed && make dev
+make setup && make env-setup && make db-start && make db-init && make db-seed && make dev
 ```
 
 **Making code changes?**
@@ -48,17 +56,21 @@ make setup && make db-start && make db-init && make db-seed && make dev
 ## Project Structure
 
 ```
+├── project.env           # Project identity config (tracked in git)
+├── project.env.example   # Template for project.env
 ├── backend/              # FastAPI backend
 │   ├── app/             # Application code
 │   │   ├── main.py     # FastAPI application entry point
 │   │   ├── api/        # API routes (versioned: /api/v1/...)
 │   │   ├── models/     # SQLModel database models (package)
 │   │   └── core/       # Config, logging, middleware
+│   ├── .env             # Backend secrets (gitignored)
 │   ├── pyproject.toml   # Python dependencies (managed by uv)
 │   └── Dockerfile       # Backend container
 ├── frontend/            # React frontend with Vite + PatternFly
 │   ├── src/
 │   │   └── app/        # App components and pages
+│   ├── .env             # Frontend config (gitignored)
 │   ├── package.json    # Node.js dependencies
 │   ├── vite.config.ts  # Vite configuration with /api proxy
 │   └── Dockerfile      # Frontend container (nginx-based)
@@ -68,6 +80,19 @@ make setup && make db-start && make db-init && make db-seed && make dev
 ├── docs/              # Developer documentation
 └── scripts/           # Deployment automation scripts
 ```
+
+## Project Configuration
+
+The project uses a two-tier configuration approach:
+
+**`project.env`** - Project identity (tracked in git):
+- `PROJECT_NAME` - Used for container image naming (e.g., `my-app`)
+- `REGISTRY` - Container registry (e.g., `quay.io/myorg`)
+- `NAMESPACE_PREFIX` - Kubernetes namespace prefix (defaults to PROJECT_NAME)
+
+**`backend/.env` and `frontend/.env`** - Runtime secrets (gitignored):
+- Database credentials, API keys, etc.
+- Created from `.env.example` templates via `make env-setup`
 
 ## File Organization Conventions
 

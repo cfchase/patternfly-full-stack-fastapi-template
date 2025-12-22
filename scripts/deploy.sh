@@ -5,8 +5,16 @@
 
 set -e
 
+# Source project configuration if exists
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+[ -f "$PROJECT_ROOT/project.env" ] && source "$PROJECT_ROOT/project.env"
+
+# Derive namespace from project config or use defaults
+NAMESPACE_PREFIX=${NAMESPACE_PREFIX:-${PROJECT_NAME:-patternfly-fastapi}}
+
 ENVIRONMENT=${1:-dev}
-NAMESPACE=${2:-patternfly-fastapi-${ENVIRONMENT}}
+NAMESPACE=${2:-${NAMESPACE_PREFIX}-${ENVIRONMENT}}
 
 if [[ "$ENVIRONMENT" != "dev" && "$ENVIRONMENT" != "prod" ]]; then
     echo "Error: Environment must be 'dev' or 'prod'"
