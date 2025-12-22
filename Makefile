@@ -3,10 +3,12 @@
 # Container Registry Operations
 REGISTRY ?= quay.io/cfchase
 TAG ?= latest
-CONTAINER_TOOL ?= docker
+
+# Auto-detect container tool (check which daemon is actually running, podman preferred)
+CONTAINER_TOOL ?= $(shell if podman info >/dev/null 2>&1; then echo podman; elif docker info >/dev/null 2>&1; then echo docker; else echo docker; fi)
 
 
-.PHONY: help setup dev dev-2 build build-prod test clean push push-prod deploy deploy-prod undeploy undeploy-prod kustomize kustomize-prod db-start db-stop db-reset db-shell db-logs db-status db-init db-seed
+.PHONY: help setup dev dev-2 build build-prod test test-frontend test-backend test-backend-verbose test-backend-coverage test-e2e test-e2e-ui test-e2e-headed update-tests lint clean push push-prod deploy deploy-prod undeploy undeploy-prod kustomize kustomize-prod db-start db-stop db-reset db-shell db-logs db-status db-init db-seed
 
 # Default target
 help: ## Show this help message
@@ -18,15 +20,15 @@ help: ## Show this help message
 setup: ## Install all dependencies
 	@echo "Installing frontend dependencies..."
 	cd frontend && npm install
-	@echo "Installing backend dependencies..."
-	cd backend && uv sync
+	@echo "Installing backend dependencies (including dev dependencies)..."
+	cd backend && uv sync --extra dev
 	@echo "Setup complete!"
 
 setup-frontend: ## Install frontend dependencies only
 	cd frontend && npm install
 
 setup-backend: ## Install backend dependencies only
-	cd backend && uv sync
+	cd backend && uv sync --extra dev
 
 # Development
 dev: ## Run both frontend and backend in development mode
@@ -111,26 +113,29 @@ build-prod: build-frontend ## Build frontend and container images for production
 	./scripts/build-images.sh prod $(REGISTRY) $(CONTAINER_TOOL)
 
 # Testing
-test: ## Run all tests (frontend and backend)
+test: test-frontend test-backend ## Run all tests (frontend and backend)
+
+test-frontend: lint ## Run frontend linting, type checking, and tests
+	@echo "Running TypeScript type checking..."
+	cd frontend && npx tsc --noEmit
 	@echo "Running frontend tests..."
 	cd frontend && npm run test
+
+test-backend: ## Run backend tests (use VERBOSE=1, COVERAGE=1, FILE=path as needed)
+	@echo "Syncing backend dependencies..."
+	@cd backend && uv sync --extra dev
 	@echo "Running backend tests..."
-	cd backend && uv run pytest
-
-test-frontend: ## Run frontend tests
-	cd frontend && npm run test
-
-test-backend: ## Run backend tests
-	cd backend && uv run pytest
+	@PYTEST_ARGS=""; \
+	if [ "$(VERBOSE)" = "1" ]; then PYTEST_ARGS="$$PYTEST_ARGS -v"; fi; \
+	if [ "$(COVERAGE)" = "1" ]; then PYTEST_ARGS="$$PYTEST_ARGS --cov=app --cov-report=term-missing"; fi; \
+	if [ -n "$(FILE)" ]; then PYTEST_ARGS="$$PYTEST_ARGS $(FILE)"; fi; \
+	cd backend && uv run pytest $$PYTEST_ARGS
 
 test-backend-verbose: ## Run backend tests with verbose output
-	cd backend && uv run pytest -v
+	$(MAKE) test-backend VERBOSE=1
 
 test-backend-coverage: ## Run backend tests with coverage
-	cd backend && uv run pytest --cov=app --cov-report=term-missing
-
-test-backend-watch: ## Run backend tests in watch mode
-	cd backend && uv run pytest --watch
+	$(MAKE) test-backend COVERAGE=1
 
 test-e2e: ## Run end-to-end tests with Playwright
 	@echo "Running E2E tests..."
@@ -141,6 +146,11 @@ test-e2e-ui: ## Run E2E tests with Playwright UI
 
 test-e2e-headed: ## Run E2E tests in headed mode (visible browser)
 	cd frontend && npm run test:e2e:headed
+
+update-tests: ## Update frontend test snapshots
+	@echo "Updating frontend test snapshots..."
+	cd frontend && npm run test -- -u
+	@echo "Test snapshots updated! Remember to commit the updated snapshots."
 
 lint: ## Run linting on frontend
 	cd frontend && npm run lint

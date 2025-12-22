@@ -187,13 +187,15 @@ make dev-backend        # Run FastAPI server with auto-reload (port 8000)
 ### Testing
 ```bash
 make test                    # Run all tests (frontend + backend)
-make test-frontend           # Run Vitest tests
-make test-backend            # Run pytest tests
-make test-backend-verbose    # Run pytest with verbose output
-make test-backend-coverage   # Run pytest with coverage report
+make test-frontend           # Run lint, type checking, and Vitest tests
+make test-backend            # Run pytest tests (syncs deps first)
+make test-backend VERBOSE=1  # Run pytest with verbose output
+make test-backend COVERAGE=1 # Run pytest with coverage report
+make test-backend FILE=tests/test_items.py  # Run specific test file
 make test-e2e                # Run Playwright E2E tests
 make test-e2e-ui             # Run E2E tests with Playwright UI (interactive)
 make test-e2e-headed         # Run E2E tests in headed mode (visible browser)
+make update-tests            # Update frontend test snapshots
 make lint                    # Run ESLint on frontend
 ```
 
