@@ -127,20 +127,46 @@ k8s/
 The application uses a **consolidated pod deployment** with multiple containers:
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                         App Pod                                  │
-│  ┌────────────────┐  ┌────────────────┐  ┌──────────────────┐  │
-│  │  OAuth2 Proxy  │  │    Frontend    │  │     Backend      │  │
-│  │  (Port 4180)   │  │   (Port 8080)  │  │   (Port 8000)    │  │
-│  │                │  │                │  │                  │  │
-│  │  Entry point   │  │  Nginx serves  │  │  FastAPI app     │  │
-│  │  for all       │──│  static files  │  │  + GraphQL       │  │
-│  │  requests      │  │  & proxies API │──│  + Admin panel   │  │
-│  └────────────────┘  └────────────────┘  └──────────────────┘  │
-│                                                                  │
-│  Init Container: db-migration (runs alembic upgrade head)       │
-└─────────────────────────────────────────────────────────────────┘
+                    ┌─────────────────────┐
+                    │   OpenShift Route   │
+                    │  (External Access)  │
+                    └──────────┬──────────┘
+                               │
+                               ▼
+┌──────────────────────────────────────────────────────────────────┐
+│                           App Pod                                 │
+│  ┌────────────────┐                                              │
+│  │  OAuth2 Proxy  │◄── All external requests enter here         │
+│  │  (Port 4180)   │                                              │
+│  │                │    - Authenticates users                     │
+│  │  ENTRY POINT   │    - Sets X-Forwarded-User headers           │
+│  └───────┬────────┘    - Redirects to OAuth provider             │
+│          │                                                        │
+│          ▼                                                        │
+│  ┌────────────────┐                                              │
+│  │    Frontend    │    - Serves React static files               │
+│  │  (Port 8080)   │    - Proxies /api/* to backend               │
+│  │                │                                              │
+│  │  Nginx Proxy   │                                              │
+│  └───────┬────────┘                                              │
+│          │                                                        │
+│          ▼                                                        │
+│  ┌────────────────┐                                              │
+│  │    Backend     │    - FastAPI application                     │
+│  │  (Port 8000)   │    - GraphQL + REST APIs                     │
+│  │                │    - Admin panel                             │
+│  │ INTERNAL ONLY  │◄── Cluster-internal, NOT directly exposed   │
+│  └────────────────┘                                              │
+│                                                                   │
+│  Init Container: db-migration (runs alembic upgrade head)        │
+└──────────────────────────────────────────────────────────────────┘
 ```
+
+**Security Architecture:**
+- **Backend is INTERNAL ONLY**: Not directly accessible from outside the cluster
+- **All requests flow through OAuth2 Proxy**: Authentication is enforced
+- **Frontend proxies API calls**: Backend only receives authenticated requests
+- **X-Forwarded-User headers**: Set by OAuth2 Proxy, trusted by backend
 
 **Key Features:**
 - **Init Container**: Runs database migrations before app starts
