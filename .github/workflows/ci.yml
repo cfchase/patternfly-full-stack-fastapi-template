@@ -1,4 +1,4 @@
-# GitHub Actions CI for PatternFly Full Stack FastAPI Template
+# GitHub Actions CI
 name: CI
 
 on:
@@ -9,44 +9,7 @@ on:
   release:
     types: [published]
 
-env:
-  REGISTRY: quay.io/cfchase
-  BACKEND_IMAGE: pf-full-stack-fastapi-backend
-  FRONTEND_IMAGE: pf-full-stack-fastapi-frontend
-
 jobs:
-  # Validate that VERSION, pyproject.toml, uv.lock, and package.json are in sync
-  validate-versions:
-    name: Validate Versions
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Check version sync
-        run: |
-          set -e
-          VERSION=$(cat VERSION | tr -d '[:space:]')
-          PYPROJECT_VERSION=$(grep '^version = ' backend/pyproject.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
-
-          # Extract version from uv.lock - look for project name then get its version
-          PROJECT_NAME=$(grep '^name = ' backend/pyproject.toml | head -1 | sed 's/name = "\(.*\)"/\1/')
-          UVLOCK_VERSION=$(grep -A1 "name = \"$PROJECT_NAME\"" backend/uv.lock | grep 'version = ' | sed 's/version = "\(.*\)"/\1/')
-
-          PKG_VERSION=$(jq -r '.version' frontend/package.json)
-
-          echo "VERSION file: $VERSION"
-          echo "pyproject.toml: $PYPROJECT_VERSION"
-          echo "uv.lock: $UVLOCK_VERSION"
-          echo "package.json: $PKG_VERSION"
-
-          if [ "$VERSION" != "$PYPROJECT_VERSION" ] || [ "$VERSION" != "$UVLOCK_VERSION" ] || [ "$VERSION" != "$PKG_VERSION" ]; then
-            echo ""
-            echo "ERROR: Version mismatch detected!"
-            echo "Run 'make sync-version' locally to fix, then commit the changes."
-            exit 1
-          fi
-          echo "All versions match: $VERSION"
-
   # Run tests for both frontend and backend
   test:
     name: Run Tests
@@ -83,8 +46,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
+
+      # __TEMPLATE_ONLY_START__
+      - name: Rename project (template CI only)
+        run: make rename PROJECT=patternfly-full-stack-fastapi-template REGISTRY=quay.io/cfchase YES=1
+      # __TEMPLATE_ONLY_END__
 
       - name: Install dependencies
         run: make setup
@@ -98,7 +64,38 @@ jobs:
           POSTGRES_DB: app
         run: make test
 
-  # Build and push container images (only on main branch push)
+  # Validate that versions are in sync across VERSION, pyproject.toml, and package.json
+  validate-versions:
+    name: Validate Versions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # __TEMPLATE_ONLY_START__
+      - name: Rename project (template CI only)
+        run: make rename PROJECT=patternfly-full-stack-fastapi-template REGISTRY=quay.io/cfchase YES=1
+      # __TEMPLATE_ONLY_END__
+
+      - name: Check version sync
+        run: |
+          set -e
+          VERSION=$(cat VERSION | tr -d '[:space:]')
+          PYPROJECT_VERSION=$(grep '^version = ' backend/pyproject.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
+          PKG_VERSION=$(jq -r '.version' frontend/package.json)
+
+          echo "VERSION file: $VERSION"
+          echo "pyproject.toml: $PYPROJECT_VERSION"
+          echo "package.json: $PKG_VERSION"
+
+          if [ "$VERSION" != "$PYPROJECT_VERSION" ] || [ "$VERSION" != "$PKG_VERSION" ]; then
+            echo ""
+            echo "ERROR: Version mismatch detected!"
+            echo "Run 'make sync-version' locally to fix, then commit the changes."
+            exit 1
+          fi
+          echo "All versions match: $VERSION"
+
+  # Build and push container images on main branch
   build:
     name: Build and Push Images
     runs-on: ubuntu-latest
@@ -111,15 +108,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # __TEMPLATE_ONLY_START__
+      - name: Rename project (template CI only)
+        run: make rename PROJECT=patternfly-full-stack-fastapi-template REGISTRY=quay.io/cfchase YES=1
+      # __TEMPLATE_ONLY_END__
+
+      - name: Extract project info
+        id: info
+        run: |
+          REGISTRY=$(grep '^REGISTRY ?=' Makefile | sed 's/REGISTRY ?= //')
+          PROJECT_NAME=$(jq -r '.name' package.json)
+          echo "registry=$REGISTRY" >> $GITHUB_OUTPUT
+          echo "backend_image=${PROJECT_NAME}-backend" >> $GITHUB_OUTPUT
+          echo "frontend_image=${PROJECT_NAME}-frontend" >> $GITHUB_OUTPUT
+          echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
 
       - name: Install frontend and build
-        run: make setup-frontend && make build-frontend
+        run: cd frontend && npm install && npm run build
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -131,20 +141,14 @@ jobs:
           username: ${{ secrets.QUAY_USERNAME }}
           password: ${{ secrets.QUAY_PASSWORD }}
 
-      - name: Extract metadata
-        id: meta
-        run: |
-          echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
-          echo "version=$(cat VERSION | tr -d '[:space:]')" >> $GITHUB_OUTPUT
-
       - name: Build and push backend image
         uses: docker/build-push-action@v5
         with:
           context: ./backend
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:${{ steps.meta.outputs.sha_short }}
-            ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:latest
+            ${{ steps.info.outputs.registry }}/${{ steps.info.outputs.backend_image }}:${{ steps.info.outputs.sha_short }}
+            ${{ steps.info.outputs.registry }}/${{ steps.info.outputs.backend_image }}:latest
 
       - name: Build and push frontend image
         uses: docker/build-push-action@v5
@@ -152,10 +156,10 @@ jobs:
           context: ./frontend
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:${{ steps.meta.outputs.sha_short }}
-            ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:latest
+            ${{ steps.info.outputs.registry }}/${{ steps.info.outputs.frontend_image }}:${{ steps.info.outputs.sha_short }}
+            ${{ steps.info.outputs.registry }}/${{ steps.info.outputs.frontend_image }}:latest
 
-  # Create release (on tag push)
+  # Create release images on published release
   release:
     name: Create Release
     runs-on: ubuntu-latest
@@ -168,15 +172,29 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # __TEMPLATE_ONLY_START__
+      - name: Rename project (template CI only)
+        run: make rename PROJECT=patternfly-full-stack-fastapi-template REGISTRY=quay.io/cfchase YES=1
+      # __TEMPLATE_ONLY_END__
+
+      - name: Extract project info
+        id: info
+        run: |
+          REGISTRY=$(grep '^REGISTRY ?=' Makefile | sed 's/REGISTRY ?= //')
+          PROJECT_NAME=$(jq -r '.name' package.json)
+          VERSION=$(cat VERSION | tr -d '[:space:]')
+          echo "registry=$REGISTRY" >> $GITHUB_OUTPUT
+          echo "backend_image=${PROJECT_NAME}-backend" >> $GITHUB_OUTPUT
+          echo "frontend_image=${PROJECT_NAME}-frontend" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
 
       - name: Install frontend and build
-        run: make setup-frontend && make build-frontend
+        run: cd frontend && npm install && npm run build
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -188,21 +206,14 @@ jobs:
           username: ${{ secrets.QUAY_USERNAME }}
           password: ${{ secrets.QUAY_PASSWORD }}
 
-      - name: Get release version
-        id: release
-        run: |
-          VERSION=$(cat VERSION | tr -d '[:space:]')
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "tag=v$VERSION" >> $GITHUB_OUTPUT
-
       - name: Build and push backend image (release)
         uses: docker/build-push-action@v5
         with:
           context: ./backend
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:${{ steps.release.outputs.version }}
-            ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:prod
+            ${{ steps.info.outputs.registry }}/${{ steps.info.outputs.backend_image }}:${{ steps.info.outputs.version }}
+            ${{ steps.info.outputs.registry }}/${{ steps.info.outputs.backend_image }}:prod
 
       - name: Build and push frontend image (release)
         uses: docker/build-push-action@v5
@@ -210,5 +221,5 @@ jobs:
           context: ./frontend
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:${{ steps.release.outputs.version }}
-            ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:prod
+            ${{ steps.info.outputs.registry }}/${{ steps.info.outputs.frontend_image }}:${{ steps.info.outputs.version }}
+            ${{ steps.info.outputs.registry }}/${{ steps.info.outputs.frontend_image }}:prod

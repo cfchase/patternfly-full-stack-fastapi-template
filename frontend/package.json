@@ -1,5 +1,5 @@
 {
-  "name": "patternfly-fastapi-template-frontend",
+  "name": "__PROJECT_NAME__-frontend",
   "private": true,
   "version": "0.1.0",
   "type": "module",

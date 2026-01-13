@@ -7,7 +7,7 @@ resources:
   # To use in-cluster postgres (not recommended for prod):
   # - ../../postgres/database/in-cluster
 
-namespace: patternfly-fastapi-prod
+namespace: __PROJECT_NAME__-prod
 
 labels:
   - pairs:
@@ -34,7 +34,7 @@ generatorOptions:
   disableNameSuffixHash: true
 
 images:
-  - name: quay.io/cfchase/pf-full-stack-fastapi-backend
+  - name: __REGISTRY__/__PROJECT_NAME__-backend
     newTag: prod
-  - name: quay.io/cfchase/pf-full-stack-fastapi-frontend
+  - name: __REGISTRY__/__PROJECT_NAME__-frontend
     newTag: prod
