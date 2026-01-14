@@ -1,5 +1,5 @@
 {
-  "name": "patternfly-fastapi-template",
+  "name": "__PROJECT_NAME__",
   "version": "1.0.0",
   "description": "A full-stack template with React frontend and FastAPI backend",
   "scripts": {
@@ -21,20 +21,5 @@
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/cfchase/patternfly-fastapi-template"
-  },
-  "keywords": [
-    "react",
-    "fastapi",
-    "template",
-    "full-stack",
-    "docker",
-    "openshift",
-    "kustomize"
-  ],
-  "author": "cfchase",
-  "license": "Apache-2.0"
+  }
 }

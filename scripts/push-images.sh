@@ -3,40 +3,34 @@
 # Push container images to registry
 # Usage: ./scripts/push-images.sh [tag] [registry] [container-tool]
 # Environment variables:
-#   CONTAINER_TOOL: Container tool to use (docker or podman). Default: docker
+#   CONTAINER_TOOL: Container tool to use (docker or podman). Auto-detected if not set.
 
 set -e
 
+# Source common utilities (logging, container tool detection)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/common.sh"
+
 # Default values
 TAG=${1:-latest}
-REGISTRY=${2:-quay.io/cfchase}
-CONTAINER_TOOL=${3:-${CONTAINER_TOOL:-docker}}
-PROJECT_NAME="pf-full-stack-fastapi"
+REGISTRY=${2:-__REGISTRY__}
+PROJECT_NAME="__PROJECT_NAME__"
 
-# Validate container tool
-if [[ "$CONTAINER_TOOL" != "podman" && "$CONTAINER_TOOL" != "docker" ]]; then
-    echo "Error: CONTAINER_TOOL must be either 'podman' or 'docker'"
-    exit 1
-fi
+# Initialize container tool (uses common.sh detection with optional override from arg/env)
+init_container_tool "${3:-}" || exit 1
 
-# Check if container tool is available
-if ! command -v "$CONTAINER_TOOL" &> /dev/null; then
-    echo "Error: $CONTAINER_TOOL is not installed or not in PATH"
-    exit 1
-fi
-
-echo "Pushing images with tag: $TAG"
-echo "Registry: $REGISTRY"
-echo "Container tool: $CONTAINER_TOOL"
+log_info "Pushing images with tag: $TAG"
+log_info "Registry: $REGISTRY"
+log_info "Container tool: $CONTAINER_TOOL"
 
 # Push backend image
-echo "Pushing backend image..."
+log_step "Pushing backend image..."
 $CONTAINER_TOOL push "${REGISTRY}/${PROJECT_NAME}-backend:${TAG}"
 
 # Push frontend image
-echo "Pushing frontend image..."
+log_step "Pushing frontend image..."
 $CONTAINER_TOOL push "${REGISTRY}/${PROJECT_NAME}-frontend:${TAG}"
 
-echo "Images pushed successfully!"
-echo "Backend: ${REGISTRY}/${PROJECT_NAME}-backend:${TAG}"
-echo "Frontend: ${REGISTRY}/${PROJECT_NAME}-frontend:${TAG}"
+log_info "Images pushed successfully!"
+log_info "Backend: ${REGISTRY}/${PROJECT_NAME}-backend:${TAG}"
+log_info "Frontend: ${REGISTRY}/${PROJECT_NAME}-frontend:${TAG}"

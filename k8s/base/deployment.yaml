@@ -17,7 +17,7 @@ spec:
       serviceAccountName: app-proxy
       initContainers:
       - name: db-migration
-        image: quay.io/cfchase/pf-full-stack-fastapi-backend:latest
+        image: __REGISTRY__/__PROJECT_NAME__-backend:latest
         imagePullPolicy: Always
         command:
         - /bin/sh
@@ -36,7 +36,7 @@ spec:
             cpu: "250m"
       containers:
       - name: frontend
-        image: quay.io/cfchase/pf-full-stack-fastapi-frontend:latest
+        image: __REGISTRY__/__PROJECT_NAME__-frontend:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
@@ -66,7 +66,7 @@ spec:
             drop:
             - ALL
       - name: backend
-        image: quay.io/cfchase/pf-full-stack-fastapi-backend:latest
+        image: __REGISTRY__/__PROJECT_NAME__-backend:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 8000

@@ -1,23 +1,38 @@
-# React FastAPI Template Makefile
+# __PROJECT_TITLE__ Makefile
 
 # Container Registry Operations
-REGISTRY ?= quay.io/cfchase
+REGISTRY ?= __REGISTRY__
 TAG ?= latest
 
-# Auto-detect container tool (check which daemon is actually running, podman preferred)
-CONTAINER_TOOL ?= $(shell if podman info >/dev/null 2>&1; then echo podman; elif docker info >/dev/null 2>&1; then echo docker; else echo docker; fi)
+# Auto-detect container tool (uses timeout to prevent hanging)
+CONTAINER_TOOL ?= $(shell ./scripts/lib/detect-container-tool.sh)
+export CONTAINER_TOOL
 
 
-.PHONY: help setup dev dev-2 build build-prod test test-frontend test-backend test-e2e test-e2e-ui test-e2e-headed update-tests lint clean push push-prod deploy deploy-prod undeploy undeploy-prod kustomize kustomize-prod db-start db-stop db-reset db-shell db-logs db-status db-init db-seed
+.PHONY: help check-renamed setup dev dev-2 build build-prod test test-frontend test-backend test-e2e test-e2e-ui test-e2e-headed update-tests lint clean push push-prod deploy deploy-prod undeploy undeploy-prod kustomize kustomize-prod db-start db-stop db-reset db-shell db-logs db-status db-init db-seed rename
 
 # Default target
 help: ## Show this help message
-	@echo "React FastAPI Template - Available commands:"
+	@echo "__PROJECT_TITLE__ - Available commands:"
 	@echo ""
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
+# Check that project has been renamed (tokens replaced)
+check-renamed:
+	@if grep -q "__PROJEC""T_NAME__" package.json 2>/dev/null; then \
+		echo ""; \
+		echo "\033[31m╔══════════════════════════════════════════════════════════════╗\033[0m"; \
+		echo "\033[31m║  ERROR: Project has not been renamed yet!                    ║\033[0m"; \
+		echo "\033[31m╠══════════════════════════════════════════════════════════════╣\033[0m"; \
+		echo "\033[31m║  Please run 'make rename' first to customize this template.  ║\033[0m"; \
+		echo "\033[31m║  Then run 'make setup' to install dependencies.              ║\033[0m"; \
+		echo "\033[31m╚══════════════════════════════════════════════════════════════╝\033[0m"; \
+		echo ""; \
+		exit 1; \
+	fi
+
 # Setup and Installation
-setup: ## Install all dependencies
+setup: check-renamed ## Install all dependencies
 	@echo "Installing frontend dependencies..."
 	cd frontend && npm install
 	@echo "Installing backend dependencies (including dev dependencies)..."
@@ -31,7 +46,7 @@ setup-backend: ## Install backend dependencies only
 	cd backend && uv sync --extra dev
 
 # Development
-dev: ## Run both frontend and backend in development mode
+dev: check-renamed ## Run both frontend and backend in development mode
 	@echo "Starting development servers..."
 	npx concurrently "make dev-backend" "make dev-frontend"
 
@@ -73,47 +88,47 @@ db-status: ## Check PostgreSQL database status
 
 db-init: ## Initialize database schema with Alembic migrations
 	@echo "Running database migrations..."
-	@cd backend && POSTGRES_SERVER=localhost POSTGRES_USER=app POSTGRES_PASSWORD=changethis POSTGRES_DB=app uv run alembic upgrade head
+	@cd backend && POSTGRES_SERVER=localhost POSTGRES_USER=app POSTGRES_PASSWORD=changethis POSTGRES_DB=__DB_NAME__ uv run alembic upgrade head
 	@echo "Database initialized!"
 
 db-migrate-create: ## Create a new Alembic migration (usage: make db-migrate-create MSG="description")
 	@if [ -z "$(MSG)" ]; then echo "Error: MSG is required. Usage: make db-migrate-create MSG=\"description\""; exit 1; fi
-	@cd backend && POSTGRES_SERVER=localhost POSTGRES_USER=app POSTGRES_PASSWORD=changethis POSTGRES_DB=app uv run alembic revision --autogenerate -m "$(MSG)"
+	@cd backend && POSTGRES_SERVER=localhost POSTGRES_USER=app POSTGRES_PASSWORD=changethis POSTGRES_DB=__DB_NAME__ uv run alembic revision --autogenerate -m "$(MSG)"
 	@echo "Migration created! Review the file in backend/alembic/versions/"
 
 db-migrate-upgrade: ## Apply all pending migrations
 	@echo "Applying migrations..."
-	@cd backend && POSTGRES_SERVER=localhost POSTGRES_USER=app POSTGRES_PASSWORD=changethis POSTGRES_DB=app uv run alembic upgrade head
+	@cd backend && POSTGRES_SERVER=localhost POSTGRES_USER=app POSTGRES_PASSWORD=changethis POSTGRES_DB=__DB_NAME__ uv run alembic upgrade head
 
 db-migrate-downgrade: ## Rollback one migration
 	@echo "Rolling back one migration..."
-	@cd backend && POSTGRES_SERVER=localhost POSTGRES_USER=app POSTGRES_PASSWORD=changethis POSTGRES_DB=app uv run alembic downgrade -1
+	@cd backend && POSTGRES_SERVER=localhost POSTGRES_USER=app POSTGRES_PASSWORD=changethis POSTGRES_DB=__DB_NAME__ uv run alembic downgrade -1
 
 db-migrate-history: ## Show migration history
-	@cd backend && POSTGRES_SERVER=localhost POSTGRES_USER=app POSTGRES_PASSWORD=changethis POSTGRES_DB=app uv run alembic history
+	@cd backend && POSTGRES_SERVER=localhost POSTGRES_USER=app POSTGRES_PASSWORD=changethis POSTGRES_DB=__DB_NAME__ uv run alembic history
 
 db-migrate-current: ## Show current migration revision
-	@cd backend && POSTGRES_SERVER=localhost POSTGRES_USER=app POSTGRES_PASSWORD=changethis POSTGRES_DB=app uv run alembic current
+	@cd backend && POSTGRES_SERVER=localhost POSTGRES_USER=app POSTGRES_PASSWORD=changethis POSTGRES_DB=__DB_NAME__ uv run alembic current
 
 db-seed: ## Seed database with test data (users and items)
 	@echo "Seeding database with test data..."
-	@cd backend && POSTGRES_SERVER=localhost POSTGRES_USER=app POSTGRES_PASSWORD=changethis POSTGRES_DB=app uv run python scripts/seed_test_data.py
+	@cd backend && POSTGRES_SERVER=localhost POSTGRES_USER=app POSTGRES_PASSWORD=changethis POSTGRES_DB=__DB_NAME__ uv run python scripts/seed_test_data.py
 	@echo "Test data created!"
 
 # Building
 build-frontend: ## Build frontend for production
 	cd frontend && npm run build
 
-build: build-frontend ## Build frontend and container images
+build: check-renamed build-frontend ## Build frontend and container images
 	@echo "Building container images for $(REGISTRY) with tag $(TAG) using $(CONTAINER_TOOL)..."
 	./scripts/build-images.sh $(TAG) $(REGISTRY) $(CONTAINER_TOOL)
 
-build-prod: build-frontend ## Build frontend and container images for production
+build-prod: check-renamed build-frontend ## Build frontend and container images for production
 	@echo "Building container images for $(REGISTRY) with tag prod using $(CONTAINER_TOOL)..."
 	./scripts/build-images.sh prod $(REGISTRY) $(CONTAINER_TOOL)
 
 # Testing
-test: test-frontend test-backend ## Run all tests (frontend and backend)
+test: check-renamed test-frontend test-backend ## Run all tests (frontend and backend)
 
 test-frontend: lint ## Run frontend linting, type checking, and tests
 	@echo "Running TypeScript type checking..."
@@ -149,11 +164,11 @@ update-tests: ## Update frontend test snapshots
 lint: ## Run linting on frontend
 	cd frontend && npm run lint
 
-push: ## Push container images to registry
+push: check-renamed ## Push container images to registry
 	@echo "Pushing images to $(REGISTRY) with tag $(TAG) using $(CONTAINER_TOOL)..."
 	./scripts/push-images.sh $(TAG) $(REGISTRY) $(CONTAINER_TOOL)
 
-push-prod: ## Push container images to registry with prod tag
+push-prod: check-renamed ## Push container images to registry with prod tag
 	@echo "Pushing images to $(REGISTRY) with tag prod using $(CONTAINER_TOOL)..."
 	./scripts/push-images.sh prod $(REGISTRY) $(CONTAINER_TOOL)
 
@@ -164,11 +179,11 @@ kustomize: ## Preview development deployment manifests
 kustomize-prod: ## Preview production deployment manifests
 	kustomize build k8s/overlays/prod
 
-deploy: ## Deploy to development environment
+deploy: check-renamed ## Deploy to development environment
 	@echo "Deploying to development..."
 	./scripts/deploy.sh dev
 
-deploy-prod: ## Deploy to production environment
+deploy-prod: check-renamed ## Deploy to production environment
 	@echo "Deploying to production..."
 	./scripts/deploy.sh prod
 
@@ -181,11 +196,12 @@ undeploy-prod: ## Remove production deployment
 	./scripts/undeploy.sh prod
 
 # Environment Setup
-env-setup: ## Copy environment example files
+env-setup: ## Copy environment example files (backend/.env is source of truth)
 	@echo "Setting up environment files..."
-	@if [ ! -f .env ]; then cp .env.example .env; echo "Created .env (root)"; fi
 	@if [ ! -f backend/.env ]; then cp backend/.env.example backend/.env; echo "Created backend/.env"; fi
 	@if [ ! -f frontend/.env ]; then cp frontend/.env.example frontend/.env; echo "Created frontend/.env"; fi
+	@echo ""
+	@echo "Edit backend/.env to configure database, API settings, etc."
 
 # Version Management
 sync-version: ## Sync VERSION to pyproject.toml and package.json
@@ -197,6 +213,16 @@ bump-version: ## Bump version (usage: make bump-version TYPE=patch|minor|major)
 
 show-version: ## Show current version
 	@cat VERSION
+
+# Project Rename (for template users)
+rename: ## Rename project (auto-detects from git/quay auth, or use PROJECT=x REGISTRY=y YES=1)
+	@YES_FLAG=""; \
+	if [ "$(YES)" = "1" ]; then YES_FLAG="-y"; fi; \
+	if echo "$(REGISTRY)" | grep -q "__"; then \
+		./scripts/rename-project.sh $$YES_FLAG "$(PROJECT)" ""; \
+	else \
+		./scripts/rename-project.sh $$YES_FLAG "$(PROJECT)" "$(REGISTRY)"; \
+	fi
 
 # Health Checks
 health-backend: ## Check backend health

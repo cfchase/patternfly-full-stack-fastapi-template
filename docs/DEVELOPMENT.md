@@ -15,7 +15,7 @@ This guide covers development setup, daily workflows, and best practices for wor
 ```bash
 # 1. Clone the repository
 git clone <repository-url>
-cd patternfly-full-stack-fastapi-template
+cd <project-directory>
 
 # 2. Install all dependencies
 make setup

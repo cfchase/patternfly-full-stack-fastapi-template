@@ -1,4 +1,4 @@
-# PatternFly FastAPI Template
+# __PROJECT_TITLE__
 
 A production-ready full-stack application template with React frontend (Vite + PatternFly UI) and FastAPI backend, featuring PostgreSQL database, comprehensive testing, and OpenShift deployment.
 
@@ -51,8 +51,8 @@ A production-ready full-stack application template with React frontend (Vite + P
 
 1. **Clone and install dependencies**:
    ```bash
-   git clone https://github.com/cfchase/patternfly-full-stack-fastapi-template
-   cd patternfly-full-stack-fastapi-template
+   git clone <your-repo-url>
+   cd <project-directory>
    make setup
    ```
 
@@ -363,7 +363,7 @@ POSTGRES_DB=app
 
 # Application Settings
 ENVIRONMENT=local
-PROJECT_NAME=PatternFly FastAPI Template
+PROJECT_NAME=__PROJECT_TITLE__
 FRONTEND_HOST=http://localhost:8080
 ```
 
@@ -482,7 +482,7 @@ make db-init-cluster
 ## Customization
 
 ### Update Container Registry
-1. Update `REGISTRY` in Makefile (default: `quay.io/cfchase`)
+1. Update `REGISTRY` in Makefile (default: `__REGISTRY__`)
 2. Update image references in `k8s/base/kustomization.yaml`
 3. Update references in overlay files
 
