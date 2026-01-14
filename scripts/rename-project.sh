@@ -325,6 +325,30 @@ for file in "${FILES_WITH_MARKERS[@]}"; do
 done
 
 # ========================================
+# Install Dependencies (generates lock files)
+# ========================================
+
+log_step "Installing dependencies and generating lock files..."
+echo ""
+
+# Install frontend dependencies
+log_info "Installing frontend dependencies..."
+(cd frontend && npm install) || {
+    log_error "Frontend install failed"
+    exit 1
+}
+
+# Install backend dependencies
+log_info "Installing backend dependencies..."
+(cd backend && uv sync --extra dev) || {
+    log_error "Backend install failed"
+    exit 1
+}
+
+echo ""
+log_info "Dependencies installed and lock files generated."
+
+# ========================================
 # Summary
 # ========================================
 
@@ -339,19 +363,14 @@ if [[ ${#FILES_UPDATED[@]} -gt 0 ]]; then
     for file in "${FILES_UPDATED[@]}"; do
         echo "  - $file"
     done
-else
-    echo "No files contained tokens to replace."
-    echo "(Project may have already been renamed)"
 fi
 
 echo ""
 echo "Next steps:"
-echo "  1. Install dependencies: make setup"
-echo "  2. Reset your local database (if previously initialized):"
-echo "     make db-reset && make db-start && make db-init && make db-seed"
-echo "  3. Test the build: make build"
+echo "  1. Start the database and run the app:"
+echo "     make db-start && make db-init && make db-seed && make dev"
 echo ""
-echo "  4. Set up CI secrets in your GitHub repository:"
+echo "  2. Set up CI secrets in your GitHub repository:"
 echo "     Go to Settings → Secrets and variables → Actions"
 echo "     Add these repository secrets:"
 echo "       - QUAY_USERNAME: Your quay.io username"
