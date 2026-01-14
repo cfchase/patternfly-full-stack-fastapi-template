@@ -6,7 +6,7 @@ A production-ready full-stack application template with React frontend (Vite + P
 
 ### Prerequisites
 
-- Node.js 22+
+- Node.js 24+
 - Python 3.11+
 - UV (Python package manager) - `pip install uv`
 - Docker or Podman

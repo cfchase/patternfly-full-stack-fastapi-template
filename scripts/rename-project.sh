@@ -331,17 +331,8 @@ done
 log_step "Installing dependencies and generating lock files..."
 echo ""
 
-# Install frontend dependencies
-log_info "Installing frontend dependencies..."
-(cd frontend && npm install) || {
-    log_error "Frontend install failed"
-    exit 1
-}
-
-# Install backend dependencies
-log_info "Installing backend dependencies..."
-(cd backend && uv sync --extra dev) || {
-    log_error "Backend install failed"
+make setup || {
+    log_error "Dependency installation failed"
     exit 1
 }
 
